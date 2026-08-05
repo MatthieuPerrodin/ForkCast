@@ -27,8 +27,8 @@
 ## Milestone 1.2 — CRUD Recettes (interface utilisateur)
 
 - [x] T9 — Vue liste des recettes + recherche par nom + filtre par tag.
-- [~] T10 — Vue détail d'une recette : affichage fait (ingrédients, étapes, infos). L'ajustement
-      dynamique des quantités selon le nombre de portions souhaité **reste à faire**.
+- [x] T10 — Vue détail d'une recette + ajustement dynamique des quantités selon le nombre de
+      portions souhaité (recalcul côté client via Alpine.js, sans aller-retour serveur).
 - [x] T11 — Formulaire de création de recette (titre, description, photo, temps, portions,
       tags) avec sous-formulaire dynamique pour les ingrédients (ajout/suppression de lignes en
       htmx, via `inlineformset_factory` + endpoints htmx dédiés).
@@ -41,10 +41,11 @@
 
 ## Milestone 1.3 — Fonctionnalité phare V1 (Sens A, cf. cahier des charges §5)
 
-- [ ] T16 — Champ `derniere_cuisson_le` + action "j'ai cuisiné ça" pour le mettre à jour depuis la
+- [x] T16 — Champ `derniere_cuisson_le` + action "j'ai cuisiné ça" pour le mettre à jour depuis la
       fiche recette.
-- [ ] T17 — Vue "Surprends-moi" : filtre par temps de préparation et tag nutritionnel, tri
-      anti-répétition (déprioriser les recettes cuisinées récemment), tirage parmi les résultats.
+- [x] T17 — Vue "Surprends-moi" : filtre par temps de préparation et score nutritionnel, tri
+      anti-répétition (`nulls_first` sur `derniere_cuisson_le`, tirage parmi les 5 candidats les
+      moins récemment cuisinés).
 
 ## Milestone 1.4 — Finitions
 

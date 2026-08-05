@@ -4,6 +4,23 @@
 <h1>Mes recettes</h1>
 <p><a href="{% url 'recettes:creer' %}" role="button">+ Nouvelle recette</a></p>
 
+<article>
+    <h2>Surprends-moi 🎲</h2>
+    <p>Une suggestion selon le temps dont tu disposes et l'envie du moment.</p>
+    <form method="get" action="{% url 'recettes:surprends_moi' %}">
+        <fieldset role="group">
+            <input type="number" name="temps_max" min="1" placeholder="Temps max (min)">
+            <select name="score_nutritionnel">
+                <option value="">Peu importe</option>
+                {% for valeur, label in score_choices %}
+                <option value="{{ valeur }}">{{ label }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit">Surprends-moi</button>
+        </fieldset>
+    </form>
+</article>
+
 <form method="get" role="search">
     <fieldset role="group">
         <input type="search" name="q" placeholder="Rechercher une recette..." value="{{ recherche }}">
