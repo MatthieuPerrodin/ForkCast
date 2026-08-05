@@ -11,11 +11,11 @@
 <body>
     <nav class="container">
         <ul>
-            <li><strong><a href="{% url 'recettes:liste' %}">ForkCast</a></strong></li>
+            <li><strong><a href="{% url 'recipes:list' %}">ForkCast</a></strong></li>
         </ul>
         {% if user.is_authenticated %}
         <ul>
-            <li><a href="{% url 'recettes:logout' %}">Déconnexion</a></li>
+            <li><a href="{% url 'recipes:logout' %}">Déconnexion</a></li>
         </ul>
         {% endif %}
     </nav>

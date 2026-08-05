@@ -15,7 +15,7 @@ staticfiles/
 .env.*
 !.env.example
 
-# Journal de bord personnel -- pas destine a etre public/partage
+# Personal dev journal -- not meant to be public/shared
 docs/00-journal-de-bord.md
 
 # Editors / OS

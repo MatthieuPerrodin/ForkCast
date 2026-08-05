@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}{% if recipe %}Modifier {{ recipe.title }}{% else %}Nouvelle recette{% endif %} — ForkCast{% endblock %}
+{% block content %}
+<h1>{% if recipe %}Modifier la recette{% else %}Nouvelle recette{% endif %}</h1>
+
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    <label for="{{ form.title.id_for_label }}">Titre</label>
+    {{ form.title }}
+    {{ form.title.errors }}
+
+    <label for="{{ form.description.id_for_label }}">Description</label>
+    {{ form.description }}
+
+    <label for="{{ form.photo.id_for_label }}">Photo</label>
+    {{ form.photo }}
+
+    <div class="grid">
+        <div>
+            <label for="{{ form.prep_time_min.id_for_label }}">Préparation (min)</label>
+            {{ form.prep_time_min }}
+        </div>
+        <div>
+            <label for="{{ form.cook_time_min.id_for_label }}">Cuisson (min)</label>
+            {{ form.cook_time_min }}
+        </div>
+        <div>
+            <label for="{{ form.default_servings.id_for_label }}">Portions</label>
+            {{ form.default_servings }}
+        </div>
+    </div>
+
+    <label for="{{ form.nutrition_score.id_for_label }}">Score nutritionnel</label>
+    {{ form.nutrition_score }}
+
+    <fieldset>
+        <legend>Tags</legend>
+        {{ form.tags }}
+    </fieldset>
+
+    <h2>Ingrédients</h2>
+    {{ ingredients_formset.management_form }}
+    <table>
+        <thead>
+            <tr><th>Ingrédient</th><th>Quantité</th><th>Unité</th><th></th></tr>
+        </thead>
+        <tbody id="ingredients-body">
+            {% for ingredient_form in ingredients_formset.forms %}
+                {% include "recipes/_ingredient_row.html" with form=ingredient_form %}
+            {% endfor %}
+        </tbody>
+    </table>
+    <button type="button"
+            hx-get="{% url 'recipes:ingredient_row' %}"
+            hx-include="#id_ingredients-TOTAL_FORMS"
+            hx-target="#ingredients-body"
+            hx-swap="beforeend">
+        + Ajouter un ingrédient
+    </button>
+
+    <h2>Étapes</h2>
+    {{ steps_formset.management_form }}
+    <ol id="steps-body">
+        {% for step_form in steps_formset.forms %}
+            {% include "recipes/_step_row.html" with form=step_form %}
+        {% endfor %}
+    </ol>
+    <button type="button"
+            hx-get="{% url 'recipes:step_row' %}"
+            hx-include="#id_steps-TOTAL_FORMS"
+            hx-target="#steps-body"
+            hx-swap="beforeend">
+        + Ajouter une étape
+    </button>
+
+    <p><button type="submit">Enregistrer</button></p>
+</form>
+{% endblock %}

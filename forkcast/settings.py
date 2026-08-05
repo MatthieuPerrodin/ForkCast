@@ -1,7 +1,7 @@
 """
-Django settings for forkcast project.
+Django settings for the forkcast project.
 
-Stack : voir docs/03-stack-technique.md à la racine du projet.
+Stack: see docs/03-tech-stack.md at the project root.
 """
 
 import os
@@ -36,7 +36,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django_htmx",
-    "recettes",
+    "recipes",
 ]
 
 MIDDLEWARE = [
@@ -71,8 +71,8 @@ WSGI_APPLICATION = "forkcast.wsgi.application"
 
 
 # Database
-# En local, pas de DATABASE_URL défini -> SQLite (zéro setup).
-# En production, DATABASE_URL pointe vers Supabase (PostgreSQL) -- voir docs/03-stack-technique.md.
+# Locally, no DATABASE_URL is set -> SQLite (zero setup).
+# In production, DATABASE_URL points to Supabase (PostgreSQL) -- see docs/03-tech-stack.md.
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
@@ -98,7 +98,8 @@ AUTH_PASSWORD_VALIDATORS = [
 
 
 # Internationalization
-# Foyer francophone (Québec) -- cf. docs/01-cahier-des-charges.md.
+# French-speaking household (Québec) -- see docs/01-requirements.md. The codebase and docs are in
+# English, but the UI stays in French since that's the household's language.
 
 LANGUAGE_CODE = "fr-ca"
 
@@ -114,13 +115,13 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-# Stockage des photos de recettes : local pour l'instant (T15), bascule vers
-# Supabase Storage prévue en T18 (docs/04-phase1-taches.md) une fois le CRUD recettes en place.
+# Recipe photo storage: local for now (see docs/04-phase1-tasks.md), switching to Supabase
+# Storage is a separate follow-up task once the recipe CRUD is in place.
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-LOGIN_URL = "recettes:login"
-LOGIN_REDIRECT_URL = "recettes:liste"
-LOGOUT_REDIRECT_URL = "recettes:login"
+LOGIN_URL = "recipes:login"
+LOGIN_REDIRECT_URL = "recipes:list"
+LOGOUT_REDIRECT_URL = "recipes:login"

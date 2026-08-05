@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% load l10n %}
+{% block title %}{{ recipe.title }} — ForkCast{% endblock %}
+{% block content %}
+<a href="{% url 'recipes:list' %}">&larr; Retour aux recettes</a>
+<h1>{{ recipe.title }}</h1>
+<p>
+    <a href="{% url 'recipes:edit' recipe.pk %}" role="button">Modifier</a>
+    <form method="post" action="{% url 'recipes:delete' recipe.pk %}" style="display:inline"
+          onsubmit="return confirm('Supprimer définitivement cette recette ?');">
+        {% csrf_token %}
+        <button type="submit" class="secondary">Supprimer</button>
+    </form>
+</p>
+<p>
+    {{ recipe.prep_time_min }} min de préparation
+    {% if recipe.cook_time_min %}· {{ recipe.cook_time_min }} min de cuisson{% endif %}
+    · {{ recipe.get_nutrition_score_display }}
+</p>
+<p>
+    {% if recipe.last_cooked_on %}Dernière fois cuisinée le {{ recipe.last_cooked_on }}.{% else %}Jamais encore cuisinée.{% endif %}
+    <form method="post" action="{% url 'recipes:mark_cooked' recipe.pk %}" style="display:inline">
+        {% csrf_token %}
+        <button type="submit">J'ai cuisiné ça 👍</button>
+    </form>
+</p>
+{% if recipe.photo %}<img src="{{ recipe.photo.url }}" alt="{{ recipe.title }}">{% endif %}
+{% if recipe.description %}<p>{{ recipe.description }}</p>{% endif %}
+
+<div class="grid" x-data="{ base: {{ recipe.default_servings }}, portions: {{ recipe.default_servings }} }">
+    <div>
+        <h2>Ingrédients</h2>
+        <label>Portions : <input type="number" min="1" x-model.number="portions" style="width: 5rem; display: inline-block;"></label>
+        <ul>
+            {% for ri in recipe.recipe_ingredients.all %}
+            {% localize off %}
+            <li><span x-text="(({{ ri.quantity }} * portions / base).toFixed(2) * 1)"></span> {{ ri.unit }} — {{ ri.ingredient.name }}</li>
+            {% endlocalize %}
+            {% endfor %}
+        </ul>
+    </div>
+    <div>
+        <h2>Étapes</h2>
+        <ol>
+            {% for step in recipe.steps.all %}
+            <li>{{ step.description }}</li>
+            {% endfor %}
+        </ol>
+    </div>
+</div>
+{% endblock %}
