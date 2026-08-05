@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load l10n %}
 {% block title %}{{ recette.titre }} — ForkCast{% endblock %}
 {% block content %}
 <a href="{% url 'recettes:liste' %}">&larr; Retour aux recettes</a>
@@ -14,18 +15,27 @@
 <p>
     {{ recette.temps_preparation_min }} min de préparation
     {% if recette.temps_cuisson_min %}· {{ recette.temps_cuisson_min }} min de cuisson{% endif %}
-    · {{ recette.portions_defaut }} portions
     · {{ recette.get_score_nutritionnel_display }}
+</p>
+<p>
+    {% if recette.derniere_cuisson_le %}Dernière fois cuisinée le {{ recette.derniere_cuisson_le }}.{% else %}Jamais encore cuisinée.{% endif %}
+    <form method="post" action="{% url 'recettes:marquer_cuisine' recette.pk %}" style="display:inline">
+        {% csrf_token %}
+        <button type="submit">J'ai cuisiné ça 👍</button>
+    </form>
 </p>
 {% if recette.photo %}<img src="{{ recette.photo.url }}" alt="{{ recette.titre }}">{% endif %}
 {% if recette.description %}<p>{{ recette.description }}</p>{% endif %}
 
-<div class="grid">
+<div class="grid" x-data="{ base: {{ recette.portions_defaut }}, portions: {{ recette.portions_defaut }} }">
     <div>
         <h2>Ingrédients</h2>
+        <label>Portions : <input type="number" min="1" x-model.number="portions" style="width: 5rem; display: inline-block;"></label>
         <ul>
             {% for ri in recette.recette_ingredients.all %}
-            <li>{{ ri.quantite }} {{ ri.unite }} — {{ ri.ingredient.nom }}</li>
+            {% localize off %}
+            <li><span x-text="(({{ ri.quantite }} * portions / base).toFixed(2) * 1)"></span> {{ ri.unite }} — {{ ri.ingredient.nom }}</li>
+            {% endlocalize %}
             {% endfor %}
         </ul>
     </div>

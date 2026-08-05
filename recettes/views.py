@@ -1,11 +1,18 @@
+import random
+from datetime import date
+
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import F
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 from django.views.generic import DetailView, ListView
 
 from .forms import EtapeFormSet, RecetteForm, RecetteIngredientFormSet
 from .models import Recette, Tag
+
+NB_CANDIDATS_SURPRISE = 5
 
 
 class ListeRecettesView(LoginRequiredMixin, ListView):
@@ -29,6 +36,7 @@ class ListeRecettesView(LoginRequiredMixin, ListView):
         context["tags"] = Tag.objects.all()
         context["recherche"] = self.request.GET.get("q", "")
         context["tag_selectionne"] = self.request.GET.get("tag", "")
+        context["score_choices"] = Recette.ScoreNutritionnel.choices
         return context
 
 
@@ -84,6 +92,42 @@ def supprimer_recette(request, pk):
     recette = get_object_or_404(Recette, pk=pk)
     recette.delete()
     return redirect("recettes:liste")
+
+
+@login_required
+@require_POST
+def marquer_cuisine(request, pk):
+    recette = get_object_or_404(Recette, pk=pk)
+    recette.derniere_cuisson_le = date.today()
+    recette.save(update_fields=["derniere_cuisson_le"])
+    return redirect("recettes:detail", pk=pk)
+
+
+@login_required
+def surprends_moi(request):
+    queryset = Recette.objects.all()
+
+    temps_max = request.GET.get("temps_max")
+    if temps_max:
+        queryset = queryset.filter(temps_preparation_min__lte=temps_max)
+
+    score = request.GET.get("score_nutritionnel")
+    if score:
+        queryset = queryset.filter(score_nutritionnel=score)
+
+    # Anti-répétition : privilégie les recettes jamais cuisinées ou cuisinées il y a longtemps,
+    # sans exiger une seule "meilleure" réponse -- tirage au sort parmi les moins récentes.
+    # nulls_first explicite : SQLite et PostgreSQL n'ordonnent pas les NULL de la même façon
+    # par défaut, or les deux sont utilisés selon l'environnement (cf. docs/03-stack-technique.md).
+    queryset = queryset.order_by(F("derniere_cuisson_le").asc(nulls_first=True))
+    candidats = list(queryset[:NB_CANDIDATS_SURPRISE])
+
+    if not candidats:
+        messages.info(request, "Aucune recette ne correspond à ces critères.")
+        return redirect("recettes:liste")
+
+    recette = random.choice(candidats)
+    return redirect("recettes:detail", pk=recette.pk)
 
 
 @login_required
