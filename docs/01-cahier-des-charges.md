@@ -1,10 +1,10 @@
-# CookManager — Cahier des charges
+# ForkCast — Cahier des charges
 
 > Statut : brouillon de travail — à valider/amender avant de passer au choix de la stack technique.
 
 ## 1. Vision du projet
 
-CookManager est une application qui simplifie le quotidien alimentaire d'un foyer : **savoir quoi
+ForkCast est une application qui simplifie le quotidien alimentaire d'un foyer : **savoir quoi
 manger et faire les courses sans y passer du temps ni se prendre la tête**. Elle centralise les
 recettes, planifie les repas, génère la liste de courses, et suit le stock à la maison.
 
