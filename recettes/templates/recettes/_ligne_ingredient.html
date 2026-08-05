@@ -1,0 +1,16 @@
+<tr>
+    <td>{{ form.ingredient }}</td>
+    <td>{{ form.quantite }}</td>
+    <td>{{ form.unite }}</td>
+    <td>
+        {{ form.id }}
+        {% if form.instance.pk %}
+        <label>{{ form.DELETE }} Supprimer</label>
+        {% else %}
+        <button type="button" onclick="this.closest('tr').remove()">Retirer</button>
+        {% endif %}
+    </td>
+</tr>
+{% if next_total %}
+<input type="hidden" id="id_ingredients-TOTAL_FORMS" name="ingredients-TOTAL_FORMS" value="{{ next_total }}" hx-swap-oob="true">
+{% endif %}
