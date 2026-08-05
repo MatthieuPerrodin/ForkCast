@@ -1,11 +1,11 @@
-# CookManager — Phase 1 : découpage en tâches
+# ForkCast — Phase 1 : découpage en tâches
 
 > Dérivé de [01-cahier-des-charges.md](01-cahier-des-charges.md) (user stories Phase 1) et de
 > [02-modele-donnees.md](02-modele-donnees.md). Stack : [03-stack-technique.md](03-stack-technique.md).
 
 ## Milestone 1.0 — Amorçage du projet ✅
 
-- [x] T1 — Nouveau projet Django (`cookmanager`) à la racine, remplace l'ancien prototype.
+- [x] T1 — Nouveau projet Django (`forkcast`) à la racine, remplace l'ancien prototype.
 - [x] T2 — Config par variables d'environnement (`.env`) : `SECRET_KEY`, `DEBUG`, `DATABASE_URL`.
       Bascule automatique SQLite (local, zéro setup) / PostgreSQL (dès que `DATABASE_URL` pointe
       vers Supabase).

@@ -1,4 +1,4 @@
-# CookManager — Stack technique
+# ForkCast — Stack technique
 
 > Statut : validé avec l'utilisateur le 2026-08-05. Dérivé du besoin
 > ([01-cahier-des-charges.md](01-cahier-des-charges.md)) et du modèle de données

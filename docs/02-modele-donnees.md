@@ -1,4 +1,4 @@
-# CookManager — Modèle de données
+# ForkCast — Modèle de données
 
 > Statut : brouillon de travail, dérivé de [01-cahier-des-charges.md](01-cahier-des-charges.md).
 > Reste indépendant de la stack technique (pas encore choisie) — c'est un modèle conceptuel, pas

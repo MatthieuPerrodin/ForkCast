@@ -1,5 +1,5 @@
 """
-Django settings for cookmanager project.
+Django settings for forkcast project.
 
 Stack : voir docs/03-stack-technique.md à la racine du projet.
 """
@@ -50,7 +50,7 @@ MIDDLEWARE = [
     "django_htmx.middleware.HtmxMiddleware",
 ]
 
-ROOT_URLCONF = "cookmanager.urls"
+ROOT_URLCONF = "forkcast.urls"
 
 TEMPLATES = [
     {
@@ -67,7 +67,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "cookmanager.wsgi.application"
+WSGI_APPLICATION = "forkcast.wsgi.application"
 
 
 # Database
