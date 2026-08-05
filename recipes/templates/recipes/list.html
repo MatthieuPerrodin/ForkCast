@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Mes recettes — ForkCast{% endblock %}
+{% block content %}
+<h1>Mes recettes</h1>
+<p><a href="{% url 'recipes:create' %}" role="button">+ Nouvelle recette</a></p>
+
+<article>
+    <h2>Surprends-moi 🎲</h2>
+    <p>Une suggestion selon le temps dont tu disposes et l'envie du moment.</p>
+    <form method="get" action="{% url 'recipes:surprise_me' %}">
+        <fieldset role="group">
+            <input type="number" name="max_time" min="1" placeholder="Temps max (min)">
+            <select name="nutrition_score">
+                <option value="">Peu importe</option>
+                {% for value, label in nutrition_score_choices %}
+                <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit">Surprends-moi</button>
+        </fieldset>
+    </form>
+</article>
+
+<form method="get" role="search">
+    <fieldset role="group">
+        <input type="search" name="q" placeholder="Rechercher une recette..." value="{{ search }}">
+        <select name="tag">
+            <option value="">Tous les tags</option>
+            {% for tag in tags %}
+            <option value="{{ tag.id }}" {% if selected_tag == tag.id|stringformat:"s" %}selected{% endif %}>{{ tag.name }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Filtrer</button>
+    </fieldset>
+</form>
+
+{% if recipes %}
+<div class="grid">
+    {% for recipe in recipes %}
+    <article>
+        <h3><a href="{% url 'recipes:detail' recipe.pk %}">{{ recipe.title }}</a></h3>
+        <p>
+            {{ recipe.prep_time_min }} min de préparation
+            · {{ recipe.get_nutrition_score_display }}
+        </p>
+        {% for tag in recipe.tags.all %}<span>#{{ tag.name }}</span> {% endfor %}
+    </article>
+    {% endfor %}
+</div>
+{% else %}
+<p>Aucune recette pour l'instant. <a href="{% url 'recipes:create' %}">Ajoute la première</a>.</p>
+{% endif %}
+{% endblock %}

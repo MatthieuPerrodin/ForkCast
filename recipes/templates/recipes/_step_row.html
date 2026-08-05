@@ -1,6 +1,6 @@
 <li>
     {{ form.id }}
-    {{ form.ordre }} {{ form.description }}
+    {{ form.order }} {{ form.description }}
     {% if form.instance.pk %}
     <label>{{ form.DELETE }} Supprimer</label>
     {% else %}
@@ -8,5 +8,5 @@
     {% endif %}
 </li>
 {% if next_total %}
-<input type="hidden" id="id_etapes-TOTAL_FORMS" name="etapes-TOTAL_FORMS" value="{{ next_total }}" hx-swap-oob="true">
+<input type="hidden" id="id_steps-TOTAL_FORMS" name="steps-TOTAL_FORMS" value="{{ next_total }}" hx-swap-oob="true">
 {% endif %}
