@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Django
+db.sqlite3
+media/
+staticfiles/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Journal de bord personnel -- pas destine a etre public/partage
+docs/00-journal-de-bord.md
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

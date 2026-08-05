@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Connexion — CookManager{% endblock %}
+{% block content %}
+<article style="max-width: 400px; margin: 3rem auto;">
+    <h1>Connexion</h1>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        <label for="{{ form.username.id_for_label }}">Nom d'utilisateur</label>
+        {{ form.username }}
+        <label for="{{ form.password.id_for_label }}">Mot de passe</label>
+        {{ form.password }}
+        <button type="submit">Se connecter</button>
+    </form>
+</article>
+{% endblock %}

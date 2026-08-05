@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Mes recettes — CookManager{% endblock %}
+{% block content %}
+<h1>Mes recettes</h1>
+
+<form method="get" role="search">
+    <fieldset role="group">
+        <input type="search" name="q" placeholder="Rechercher une recette..." value="{{ recherche }}">
+        <select name="tag">
+            <option value="">Tous les tags</option>
+            {% for tag in tags %}
+            <option value="{{ tag.id }}" {% if tag_selectionne == tag.id|stringformat:"s" %}selected{% endif %}>{{ tag.nom }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Filtrer</button>
+    </fieldset>
+</form>
+
+{% if recettes %}
+<div class="grid">
+    {% for recette in recettes %}
+    <article>
+        <h3><a href="{% url 'recettes:detail' recette.pk %}">{{ recette.titre }}</a></h3>
+        <p>
+            {{ recette.temps_preparation_min }} min de préparation
+            · {{ recette.get_score_nutritionnel_display }}
+        </p>
+        {% for tag in recette.tags.all %}<span>#{{ tag.nom }}</span> {% endfor %}
+    </article>
+    {% endfor %}
+</div>
+{% else %}
+<p>Aucune recette pour l'instant. Ajoute-en une depuis <a href="/admin/recettes/recette/add/">l'admin</a> en attendant que le formulaire dédié (T11) soit prêt.</p>
+{% endif %}
+{% endblock %}
