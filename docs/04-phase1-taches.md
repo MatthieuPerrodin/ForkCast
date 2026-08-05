@@ -29,14 +29,15 @@
 - [x] T9 — Vue liste des recettes + recherche par nom + filtre par tag.
 - [~] T10 — Vue détail d'une recette : affichage fait (ingrédients, étapes, infos). L'ajustement
       dynamique des quantités selon le nombre de portions souhaité **reste à faire**.
-- [ ] T11 — Formulaire de création de recette (titre, description, photo, temps, portions,
+- [x] T11 — Formulaire de création de recette (titre, description, photo, temps, portions,
       tags) avec sous-formulaire dynamique pour les ingrédients (ajout/suppression de lignes en
-      htmx).
-- [ ] T12 — Sous-formulaire dynamique pour les étapes (ajout/suppression, ordre).
-- [ ] T13 — Modification d'une recette existante (réutilise les formulaires de création).
-- [ ] T14 — Suppression d'une recette (avec confirmation).
-- [ ] T15 — Upload de photo — stockage local pour commencer ; bascule vers Supabase Storage
-      documentée comme tâche séparée (voir Milestone 1.3) plutôt que bloquante ici.
+      htmx, via `inlineformset_factory` + endpoints htmx dédiés).
+- [x] T12 — Sous-formulaire dynamique pour les étapes (ajout/suppression, ordre).
+- [x] T13 — Modification d'une recette existante (réutilise le même formulaire/vue que T11).
+- [x] T14 — Suppression d'une recette (confirmation via `confirm()` JS avant le POST).
+- [ ] T15 — Upload de photo — le champ existe déjà (`ImageField` sur `Recette`, stockage local via
+      `MEDIA_ROOT`) ; bascule vers Supabase Storage documentée comme tâche séparée (Milestone 1.4)
+      plutôt que bloquante ici.
 
 ## Milestone 1.3 — Fonctionnalité phare V1 (Sens A, cf. cahier des charges §5)
 

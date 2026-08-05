@@ -2,6 +2,7 @@
 {% block title %}Mes recettes — ForkCast{% endblock %}
 {% block content %}
 <h1>Mes recettes</h1>
+<p><a href="{% url 'recettes:creer' %}" role="button">+ Nouvelle recette</a></p>
 
 <form method="get" role="search">
     <fieldset role="group">
@@ -30,6 +31,6 @@
     {% endfor %}
 </div>
 {% else %}
-<p>Aucune recette pour l'instant. Ajoute-en une depuis <a href="/admin/recettes/recette/add/">l'admin</a> en attendant que le formulaire dédié (T11) soit prêt.</p>
+<p>Aucune recette pour l'instant. <a href="{% url 'recettes:creer' %}">Ajoute la première</a>.</p>
 {% endif %}
 {% endblock %}

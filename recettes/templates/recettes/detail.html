@@ -4,6 +4,14 @@
 <a href="{% url 'recettes:liste' %}">&larr; Retour aux recettes</a>
 <h1>{{ recette.titre }}</h1>
 <p>
+    <a href="{% url 'recettes:modifier' recette.pk %}" role="button">Modifier</a>
+    <form method="post" action="{% url 'recettes:supprimer' recette.pk %}" style="display:inline"
+          onsubmit="return confirm('Supprimer définitivement cette recette ?');">
+        {% csrf_token %}
+        <button type="submit" class="secondary">Supprimer</button>
+    </form>
+</p>
+<p>
     {{ recette.temps_preparation_min }} min de préparation
     {% if recette.temps_cuisson_min %}· {{ recette.temps_cuisson_min }} min de cuisson{% endif %}
     · {{ recette.portions_defaut }} portions

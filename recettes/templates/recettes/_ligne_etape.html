@@ -1,0 +1,12 @@
+<li>
+    {{ form.id }}
+    {{ form.ordre }} {{ form.description }}
+    {% if form.instance.pk %}
+    <label>{{ form.DELETE }} Supprimer</label>
+    {% else %}
+    <button type="button" onclick="this.closest('li').remove()">Retirer</button>
+    {% endif %}
+</li>
+{% if next_total %}
+<input type="hidden" id="id_etapes-TOTAL_FORMS" name="etapes-TOTAL_FORMS" value="{{ next_total }}" hx-swap-oob="true">
+{% endif %}
