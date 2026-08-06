@@ -532,3 +532,88 @@ class PantryTests(RecipesTestCase):
         )
         response = self.client.get(reverse("recipes:pantry"))
         self.assertContains(response, "Périmé")
+
+
+class StockIntegrationTests(RecipesTestCase):
+    def test_generate_subtracts_available_stock(self):
+        year, week, _ = date.today().isocalendar()
+        monday = date.fromisocalendar(year, week, 1)
+        recipe = Recipe.objects.create(title="A", prep_time_min=10, default_servings=2)
+        RecipeIngredient.objects.create(
+            recipe=recipe, ingredient=self.ingredient, quantity=100, unit="g"
+        )
+        MealSlot.objects.create(
+            date=monday, meal_time="lunch", recipe=recipe, planned_servings=2
+        )
+        StockItem.objects.create(ingredient=self.ingredient, quantity=30, unit="g")
+
+        self.client.post(reverse("recipes:generate_shopping_list", args=[year, week]))
+
+        item = ShoppingListItem.objects.get(ingredient=self.ingredient)
+        self.assertEqual(item.quantity, Decimal("70"))
+
+    def test_generate_drops_line_when_stock_fully_covers_need(self):
+        year, week, _ = date.today().isocalendar()
+        monday = date.fromisocalendar(year, week, 1)
+        recipe = Recipe.objects.create(title="A", prep_time_min=10, default_servings=2)
+        RecipeIngredient.objects.create(
+            recipe=recipe, ingredient=self.ingredient, quantity=100, unit="g"
+        )
+        MealSlot.objects.create(
+            date=monday, meal_time="lunch", recipe=recipe, planned_servings=2
+        )
+        StockItem.objects.create(ingredient=self.ingredient, quantity=150, unit="g")
+
+        self.client.post(reverse("recipes:generate_shopping_list", args=[year, week]))
+
+        self.assertFalse(ShoppingListItem.objects.filter(ingredient=self.ingredient).exists())
+
+    def test_mark_cooked_deducts_soonest_expiring_lot_first(self):
+        recipe = Recipe.objects.create(title="A", prep_time_min=10)
+        RecipeIngredient.objects.create(
+            recipe=recipe, ingredient=self.ingredient, quantity=80, unit="g"
+        )
+        soon = StockItem.objects.create(
+            ingredient=self.ingredient,
+            quantity=50,
+            unit="g",
+            expiry_date=date.today() + timedelta(days=1),
+        )
+        later = StockItem.objects.create(
+            ingredient=self.ingredient,
+            quantity=100,
+            unit="g",
+            expiry_date=date.today() + timedelta(days=30),
+        )
+
+        self.client.post(reverse("recipes:mark_cooked", args=[recipe.pk]))
+
+        self.assertFalse(StockItem.objects.filter(pk=soon.pk).exists())
+        later.refresh_from_db()
+        self.assertEqual(later.quantity, Decimal("70"))  # 80 needed - 50 (soon) = 30 taken from later
+
+    def test_mark_cooked_reduces_lot_without_deleting_when_more_than_needed(self):
+        recipe = Recipe.objects.create(title="A", prep_time_min=10)
+        RecipeIngredient.objects.create(
+            recipe=recipe, ingredient=self.ingredient, quantity=20, unit="g"
+        )
+        lot = StockItem.objects.create(ingredient=self.ingredient, quantity=100, unit="g")
+
+        self.client.post(reverse("recipes:mark_cooked", args=[recipe.pk]))
+
+        lot.refresh_from_db()
+        self.assertEqual(lot.quantity, Decimal("80"))
+
+    def test_mark_cooked_best_effort_when_stock_insufficient(self):
+        recipe = Recipe.objects.create(title="A", prep_time_min=10)
+        RecipeIngredient.objects.create(
+            recipe=recipe, ingredient=self.ingredient, quantity=500, unit="g"
+        )
+        StockItem.objects.create(ingredient=self.ingredient, quantity=50, unit="g")
+
+        response = self.client.post(reverse("recipes:mark_cooked", args=[recipe.pk]))
+
+        self.assertRedirects(response, reverse("recipes:detail", args=[recipe.pk]))
+        self.assertFalse(StockItem.objects.filter(ingredient=self.ingredient).exists())
+        recipe.refresh_from_db()
+        self.assertEqual(recipe.last_cooked_on, date.today())

@@ -40,11 +40,17 @@
 
 ## Tasks — integration (follow-up PR)
 
-- [ ] T42 — Shopping list generation subtracts available stock (same ingredient + unit) from the
+- [x] T42 — Shopping list generation subtracts available stock (same ingredient + unit) from the
       aggregated auto quantity; drop the line only if stock fully covers it.
-- [ ] T43 — "I cooked this" also deducts the recipe's ingredients from stock, FIFO by expiry,
-      best-effort.
-- [ ] T44 — Automated tests for both.
+- [x] T43 — "I cooked this" also deducts the recipe's ingredients from stock, FIFO by expiry
+      (relies on `StockItem`'s default ordering), best-effort (deducts what exists, no error if
+      stock is short). Deducts at `recipe.default_servings` since `mark_cooked` doesn't currently
+      collect an actual-servings-cooked input — a known simplification, not a bug.
+- [x] T44 — Automated tests: stock subtraction (partial and full coverage), FIFO consumption order
+      across two lots, partial-lot reduction without deleting it, best-effort behavior when stock
+      is short. 5 new tests (36 total). Also verified manually end-to-end against demo data
+      (Carbonara + a 150g Spaghetti lot: list showed 250g needed, then cooking it consumed the lot
+      entirely, confirmed via direct DB query, not just the page not showing an option).
 
 ## Out of scope
 

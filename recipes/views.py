@@ -5,7 +5,7 @@ from decimal import Decimal
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import F
+from django.db.models import F, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 from django.views.generic import DetailView, ListView
@@ -111,7 +111,26 @@ def mark_cooked(request, pk):
     recipe = get_object_or_404(Recipe, pk=pk)
     recipe.last_cooked_on = date.today()
     recipe.save(update_fields=["last_cooked_on"])
+    for ri in recipe.recipe_ingredients.all():
+        _deduct_stock_fifo(ri.ingredient_id, ri.unit, ri.quantity)
     return redirect("recipes:detail", pk=pk)
+
+
+def _deduct_stock_fifo(ingredient_id, unit, needed_quantity):
+    """Best-effort: consumes the soonest-expiring lots first (StockItem's default ordering),
+    stops once the need is covered or stock runs out -- doesn't error if stock is short.
+    """
+    remaining = needed_quantity
+    for lot in StockItem.objects.filter(ingredient_id=ingredient_id, unit=unit):
+        if remaining <= 0:
+            break
+        if lot.quantity <= remaining:
+            remaining -= lot.quantity
+            lot.delete()
+        else:
+            lot.quantity -= remaining
+            lot.save(update_fields=["quantity"])
+            remaining = Decimal("0")
 
 
 @login_required
@@ -255,11 +274,20 @@ def generate_shopping_list(request, year, week):
             totals[key] = totals.get(key, Decimal("0")) + ri.quantity * ratio
 
     for (ingredient_id, unit), quantity in totals.items():
+        # Subtract what's already in the pantry (any location) -- see docs/07-phase4-tasks.md.
+        # Drop the line entirely once stock fully covers the need, rather than showing a
+        # zero/negative quantity.
+        available = StockItem.objects.filter(ingredient_id=ingredient_id, unit=unit).aggregate(
+            total=Sum("quantity")
+        )["total"] or Decimal("0")
+        remaining = quantity - available
+        if remaining <= 0:
+            continue
         ShoppingListItem.objects.create(
             shopping_list=shopping_list,
             ingredient_id=ingredient_id,
             unit=unit,
-            quantity=quantity,
+            quantity=remaining,
             source=ShoppingListItem.Source.AUTO,
         )
 
