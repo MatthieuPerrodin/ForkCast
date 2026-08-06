@@ -36,11 +36,13 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django_htmx",
+    "storages",
     "recipes",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -115,10 +117,51 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-# Recipe photo storage: local for now (see docs/04-phase1-tasks.md), switching to Supabase
-# Storage is a separate follow-up task once the recipe CRUD is in place.
+# Recipe photo storage: local filesystem by default (zero setup). Set SUPABASE_STORAGE_BUCKET
+# (and the other SUPABASE_STORAGE_* vars below) to switch to Supabase Storage instead -- see
+# .env.example and docs/03-tech-stack.md.
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+SUPABASE_STORAGE_BUCKET = os.environ.get("SUPABASE_STORAGE_BUCKET")
+
+if SUPABASE_STORAGE_BUCKET:
+    SUPABASE_PROJECT_REF = os.environ["SUPABASE_PROJECT_REF"]
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.s3.S3Storage",
+            "OPTIONS": {
+                "bucket_name": SUPABASE_STORAGE_BUCKET,
+                "endpoint_url": f"https://{SUPABASE_PROJECT_REF}.supabase.co/storage/v1/s3",
+                "region_name": os.environ.get("SUPABASE_STORAGE_REGION", "us-east-1"),
+                "access_key": os.environ["SUPABASE_STORAGE_ACCESS_KEY_ID"],
+                "secret_key": os.environ["SUPABASE_STORAGE_SECRET_ACCESS_KEY"],
+                # Supabase serves public objects from its own REST path, not the S3 endpoint
+                # above (that one is for authenticated S3-API access, uploads included) --
+                # custom_domain overrides how django-storages builds the public .url() so
+                # <img src> tags get a URL that's actually readable anonymously.
+                "custom_domain": (
+                    f"{SUPABASE_PROJECT_REF}.supabase.co/storage/v1/object/public/"
+                    f"{SUPABASE_STORAGE_BUCKET}"
+                ),
+                "default_acl": None,
+                "querystring_auth": False,
+                "file_overwrite": False,
+            },
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
+else:
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

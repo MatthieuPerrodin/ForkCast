@@ -49,9 +49,23 @@
 
 ## Milestone 1.4 — Polish
 
-- [ ] T18 — Actually switch photo storage to Supabase Storage.
-- [ ] T19 — Initial deployment to Google Cloud Run (Dockerfile, production env vars).
+- [~] T18 — Supabase Storage backend implemented (`django-storages`, S3-compatible, env-var
+      driven, local-filesystem fallback when unconfigured). **Not yet verified against a real
+      bucket** — pending the user creating a Supabase project (Postgres + Storage bucket).
+- [~] T19 — `Dockerfile` (gunicorn + whitenoise) written and verified end-to-end locally (build,
+      migrate, login, static files all confirmed working inside the container via Docker). GCP
+      project `forkcast-mp-2026` created, billing linked, Cloud Run/Cloud Build/Artifact Registry
+      APIs enabled. **Actual `gcloud run deploy` still pending**: deploying now would mean SQLite
+      on Cloud Run's non-persistent disk, which loses data on every instance restart -- not worth
+      shipping until `DATABASE_URL` points to the real Supabase Postgres instance.
 - [ ] T20 — Quick responsive review (mobile/desktop) of the list/detail/form pages.
+
+### Blocked on the user
+
+T18/T19 need a Supabase project (Postgres database + a public `recipe-photos` storage bucket) that
+doesn't exist yet. Steps to create it are in `docs/00-journal-de-bord.md` (also given to the user
+directly in chat). Once `DATABASE_URL` and the `SUPABASE_STORAGE_*` vars are available, wire them
+into a local `.env`, verify locally, then finish the Cloud Run deploy.
 
 ## Notes
 

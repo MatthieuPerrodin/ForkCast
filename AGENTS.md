@@ -62,6 +62,16 @@
   - Local dev account (SQLite, not committed): `famille` / `forkcast-dev`
   - No automated test suite yet (`recipes/tests.py` is empty) — to be built up as remaining
     views/forms get implemented.
+- Deployment target: Google Cloud Run, dedicated GCP project `forkcast-mp-2026` (billing linked,
+  Cloud Run/Cloud Build/Artifact Registry APIs enabled). `Dockerfile` builds and runs correctly
+  (verified locally with `docker build` + `docker run` + `docker exec ... migrate` + real HTTP
+  requests) but **has not been deployed yet** — Cloud Run has no persistent disk between instance
+  restarts, so deploying with SQLite would silently lose data. Don't run `gcloud run deploy` until
+  `DATABASE_URL` points at a real Supabase Postgres instance. Storage: recipe photos default to
+  local filesystem storage; setting `SUPABASE_STORAGE_BUCKET` (+ the other `SUPABASE_STORAGE_*`
+  vars, see `.env.example`) switches to Supabase Storage via `django-storages` — implemented but
+  **not yet verified against a real bucket**, since no Supabase project exists yet for this
+  project. See `docs/04-phase1-tasks.md` (T18/T19, "Blocked on the user") for what's left.
 - After any change to a view/template touching authentication or the recipe CRUD, actually verify
   the critical path (POST login + page rendering, not just the absence of a server startup error)
   before considering the task done.
