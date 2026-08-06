@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Rabais — ForkCast{% endblock %}
+{% block content %}
+<h1>Rabais</h1>
+<p>Indique les ingrédients en promo cette semaine pour voir les recettes qui les utilisent mises en avant.</p>
+
+<form method="post">
+    {% csrf_token %}
+    <fieldset role="group">
+        {{ form.ingredient }}
+        {{ form.store }}
+        {{ form.sale_price }}
+        {{ form.start_date }}
+        {{ form.end_date }}
+        <button type="submit">Ajouter</button>
+    </fieldset>
+    {{ form.errors }}
+</form>
+
+<h2>Rabais enregistrés</h2>
+<ul>
+    {% for deal in deals %}
+    <li>
+        {{ deal.ingredient.name }}
+        {% if deal.store %}chez {{ deal.store }}{% endif %}
+        {% if deal.sale_price %}— {{ deal.sale_price }} $ {% endif %}
+        ({{ deal.start_date }} au {{ deal.end_date }})
+        {% if deal.start_date <= today and today <= deal.end_date %}<mark>en cours</mark>{% endif %}
+    </li>
+    {% empty %}
+    <li>Aucun rabais enregistré.</li>
+    {% endfor %}
+</ul>
+{% endblock %}

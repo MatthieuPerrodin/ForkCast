@@ -44,12 +44,17 @@
 
 ## Tasks — Deal / rabais (Direction B V1, requirements §5)
 
-- [ ] T33 — `Deal` model (ingredient FK, store, sale_price, start/end date), admin.
-- [ ] T34 — Manually flag an ingredient as on sale (simple form, likely from the admin or a small
-      dedicated page — no need for a polished UI for a manual, occasional-use action).
-- [ ] T35 — Surface it where it's useful: a badge on recipe cards using a currently-active deal
-      ingredient, and a marker in the planning page's recipe picker.
-- [ ] T36 — Automated tests for the "currently active" date-range logic.
+- [x] T33 — `Deal` model (ingredient FK, store, sale_price, start/end date), admin. Built alongside
+      the shopping list models in the previous PR.
+- [x] T34 — Dedicated in-app form (`/deals/`) rather than pushing the household to `/admin/` for a
+      feature they'll use directly — keeps the whole experience in French/consistent styling.
+- [x] T35 — Badge (`🏷️ ingrédient en rabais`) on recipe cards in the list, and a `🏷️` prefix on
+      on-deal recipes in the planning page's recipe picker. Both driven by one shared helper,
+      `_recipes_on_deal_ids()`.
+- [x] T36 — Automated tests: `is_active()` boundary dates (starts today, ends today, day before/
+      after), flagging via the real list/planning views (`response.context["deal_recipe_ids"]`),
+      expired deals correctly not flagging. 4 new tests (25 total). Also spot-checked visually:
+      flagged Parmesan as on sale, confirmed the Carbonara card picked up the badge.
 
 ## Out of scope
 

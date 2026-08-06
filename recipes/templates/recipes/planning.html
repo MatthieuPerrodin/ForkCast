@@ -46,7 +46,7 @@
                 <select name="recipe" required>
                     <option value="">Choisir une recette...</option>
                     {% for recipe in recipes %}
-                    <option value="{{ recipe.id }}">{{ recipe.title }}</option>
+                    <option value="{{ recipe.id }}">{% if recipe.pk in deal_recipe_ids %}🏷️ {% endif %}{{ recipe.title }}</option>
                     {% endfor %}
                 </select>
                 <input type="number" name="planned_servings" min="1" placeholder="Portions">

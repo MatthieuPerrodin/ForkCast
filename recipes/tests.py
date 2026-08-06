@@ -6,6 +6,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from .models import (
+    Deal,
     Ingredient,
     MealSlot,
     Recipe,
@@ -362,3 +363,69 @@ class ShoppingListTests(RecipesTestCase):
         item = ShoppingListItem.objects.get(free_text_name="Sacs poubelle")
         self.assertEqual(item.source, ShoppingListItem.Source.MANUAL)
         self.assertEqual(item.quantity, Decimal("2"))
+
+
+class DealTests(RecipesTestCase):
+    def test_is_active_on_boundary_dates(self):
+        deal = Deal.objects.create(
+            ingredient=self.ingredient,
+            start_date=date.today(),
+            end_date=date.today(),
+        )
+        self.assertTrue(deal.is_active())
+        self.assertTrue(deal.is_active(on_date=date.today()))
+        self.assertFalse(deal.is_active(on_date=date.today() - timedelta(days=1)))
+        self.assertFalse(deal.is_active(on_date=date.today() + timedelta(days=1)))
+
+    def test_create_deal_via_form(self):
+        response = self.client.post(
+            reverse("recipes:deals"),
+            {
+                "ingredient": self.ingredient.pk,
+                "store": "IGA",
+                "sale_price": "3.99",
+                "start_date": date.today().isoformat(),
+                "end_date": (date.today() + timedelta(days=6)).isoformat(),
+            },
+        )
+        self.assertRedirects(response, reverse("recipes:deals"))
+        self.assertTrue(Deal.objects.filter(ingredient=self.ingredient, store="IGA").exists())
+
+    def test_recipe_using_deal_ingredient_is_flagged_on_list_and_planning(self):
+        on_sale_recipe = Recipe.objects.create(title="Riz sauté", prep_time_min=10)
+        RecipeIngredient.objects.create(
+            recipe=on_sale_recipe, ingredient=self.ingredient, quantity=100, unit="g"
+        )
+        other_ingredient = Ingredient.objects.create(name="Pâtes", default_unit="g")
+        other_recipe = Recipe.objects.create(title="Pâtes simples", prep_time_min=10)
+        RecipeIngredient.objects.create(
+            recipe=other_recipe, ingredient=other_ingredient, quantity=100, unit="g"
+        )
+        Deal.objects.create(
+            ingredient=self.ingredient,
+            start_date=date.today() - timedelta(days=1),
+            end_date=date.today() + timedelta(days=1),
+        )
+
+        response = self.client.get(reverse("recipes:list"))
+        self.assertIn(on_sale_recipe.pk, response.context["deal_recipe_ids"])
+        self.assertNotIn(other_recipe.pk, response.context["deal_recipe_ids"])
+        self.assertContains(response, "en rabais")
+
+        year, week, _ = date.today().isocalendar()
+        response = self.client.get(reverse("recipes:planning_week", args=[year, week]))
+        self.assertIn(on_sale_recipe.pk, response.context["deal_recipe_ids"])
+
+    def test_expired_deal_does_not_flag_recipe(self):
+        recipe = Recipe.objects.create(title="Riz sauté", prep_time_min=10)
+        RecipeIngredient.objects.create(
+            recipe=recipe, ingredient=self.ingredient, quantity=100, unit="g"
+        )
+        Deal.objects.create(
+            ingredient=self.ingredient,
+            start_date=date.today() - timedelta(days=10),
+            end_date=date.today() - timedelta(days=3),
+        )
+
+        response = self.client.get(reverse("recipes:list"))
+        self.assertNotIn(recipe.pk, response.context["deal_recipe_ids"])

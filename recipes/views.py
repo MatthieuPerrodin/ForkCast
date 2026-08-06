@@ -10,10 +10,21 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 from django.views.generic import DetailView, ListView
 
-from .forms import RecipeForm, RecipeIngredientFormSet, StepFormSet
-from .models import MealSlot, Recipe, ShoppingList, ShoppingListItem, Tag
+from .forms import DealForm, RecipeForm, RecipeIngredientFormSet, StepFormSet
+from .models import Deal, MealSlot, Recipe, ShoppingList, ShoppingListItem, Tag
 
 SURPRISE_CANDIDATE_POOL_SIZE = 5
+
+
+def _recipes_on_deal_ids():
+    """Recipe pks using at least one ingredient with a currently active Deal."""
+    today = date.today()
+    return set(
+        Recipe.objects.filter(
+            recipe_ingredients__ingredient__deals__start_date__lte=today,
+            recipe_ingredients__ingredient__deals__end_date__gte=today,
+        ).values_list("pk", flat=True)
+    )
 
 
 class RecipeListView(LoginRequiredMixin, ListView):
@@ -38,6 +49,7 @@ class RecipeListView(LoginRequiredMixin, ListView):
         context["search"] = self.request.GET.get("q", "")
         context["selected_tag"] = self.request.GET.get("tag", "")
         context["nutrition_score_choices"] = Recipe.NutritionScore.choices
+        context["deal_recipe_ids"] = _recipes_on_deal_ids()
         return context
 
 
@@ -176,6 +188,7 @@ def planning_week(request, year, week):
             "next_year": next_year,
             "next_week": next_week,
             "recipes": Recipe.objects.order_by("title"),
+            "deal_recipe_ids": _recipes_on_deal_ids(),
         },
     )
 
@@ -274,6 +287,27 @@ def add_shopping_item(request):
         source=ShoppingListItem.Source.MANUAL,
     )
     return redirect("recipes:shopping_list")
+
+
+@login_required
+def deals_view(request):
+    if request.method == "POST":
+        form = DealForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect("recipes:deals")
+    else:
+        form = DealForm()
+
+    return render(
+        request,
+        "recipes/deals.html",
+        {
+            "form": form,
+            "deals": Deal.objects.select_related("ingredient"),
+            "today": date.today(),
+        },
+    )
 
 
 @login_required

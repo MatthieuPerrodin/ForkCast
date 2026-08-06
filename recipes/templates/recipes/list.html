@@ -42,6 +42,7 @@
         <p>
             {{ recipe.prep_time_min }} min de préparation
             · {{ recipe.get_nutrition_score_display }}
+            {% if recipe.pk in deal_recipe_ids %}<mark>🏷️ ingrédient en rabais</mark>{% endif %}
         </p>
         {% for tag in recipe.tags.all %}<span>#{{ tag.name }}</span> {% endfor %}
     </article>
