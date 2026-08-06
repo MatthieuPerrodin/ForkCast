@@ -1,5 +1,6 @@
 import random
 from datetime import date, timedelta
+from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -10,7 +11,7 @@ from django.views.decorators.http import require_POST
 from django.views.generic import DetailView, ListView
 
 from .forms import RecipeForm, RecipeIngredientFormSet, StepFormSet
-from .models import MealSlot, Recipe, Tag
+from .models import MealSlot, Recipe, ShoppingList, ShoppingListItem, Tag
 
 SURPRISE_CANDIDATE_POOL_SIZE = 5
 
@@ -166,6 +167,8 @@ def planning_week(request, year, week):
         "recipes/planning.html",
         {
             "grid": grid,
+            "year": year,
+            "week": week,
             "week_start": days[0],
             "week_end": days[-1],
             "prev_year": prev_year,
@@ -198,6 +201,79 @@ def clear_slot(request, pk):
     slot = get_object_or_404(MealSlot, pk=pk)
     slot.delete()
     return redirect(request.POST.get("next") or "recipes:planning")
+
+
+def _latest_shopping_list():
+    return ShoppingList.objects.order_by("-created_at").first()
+
+
+def _get_or_create_shopping_list():
+    return _latest_shopping_list() or ShoppingList.objects.create()
+
+
+@login_required
+def shopping_list_view(request):
+    shopping_list = _latest_shopping_list()
+    items = shopping_list.items.select_related("ingredient") if shopping_list else []
+    return render(
+        request,
+        "recipes/shopping_list.html",
+        {"shopping_list": shopping_list, "items": items},
+    )
+
+
+@login_required
+@require_POST
+def generate_shopping_list(request, year, week):
+    shopping_list = _get_or_create_shopping_list()
+    shopping_list.items.filter(source=ShoppingListItem.Source.AUTO).delete()
+
+    days = _week_dates(year, week)
+    slots = MealSlot.objects.filter(date__in=days).select_related("recipe")
+
+    # Aggregate by (ingredient, unit) -- no unit conversion (see docs/06-phase3-tasks.md), and
+    # scale each recipe's quantities by planned_servings / default_servings, same idea as the
+    # per-recipe portion adjuster from Phase 1.
+    totals = {}
+    for slot in slots:
+        ratio = Decimal(slot.planned_servings) / Decimal(slot.recipe.default_servings)
+        for ri in slot.recipe.recipe_ingredients.all():
+            key = (ri.ingredient_id, ri.unit)
+            totals[key] = totals.get(key, Decimal("0")) + ri.quantity * ratio
+
+    for (ingredient_id, unit), quantity in totals.items():
+        ShoppingListItem.objects.create(
+            shopping_list=shopping_list,
+            ingredient_id=ingredient_id,
+            unit=unit,
+            quantity=quantity,
+            source=ShoppingListItem.Source.AUTO,
+        )
+
+    return redirect("recipes:shopping_list")
+
+
+@login_required
+@require_POST
+def toggle_shopping_item(request, pk):
+    item = get_object_or_404(ShoppingListItem, pk=pk)
+    item.checked = not item.checked
+    item.save(update_fields=["checked"])
+    return redirect("recipes:shopping_list")
+
+
+@login_required
+@require_POST
+def add_shopping_item(request):
+    shopping_list = _get_or_create_shopping_list()
+    ShoppingListItem.objects.create(
+        shopping_list=shopping_list,
+        free_text_name=request.POST["free_text_name"],
+        quantity=request.POST.get("quantity") or None,
+        unit=request.POST.get("unit", ""),
+        source=ShoppingListItem.Source.MANUAL,
+    )
+    return redirect("recipes:shopping_list")
 
 
 @login_required

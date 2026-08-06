@@ -1,4 +1,4 @@
-"""Recipe domain models -- Phase 1.
+"""Recipe domain models -- Phases 1-3.
 
 Matches docs/02-data-model.md. One simplification: the conceptual `RecipeTag` join entity isn't a
 separate class since it carries no data of its own -- a standard Django ManyToManyField represents
@@ -8,6 +8,8 @@ Enum values are English (code-level identifiers); the second element of each cho
 label shown in the UI -- the household using this app is French-speaking, only the codebase and
 docs are in English.
 """
+
+from datetime import date
 
 from django.db import models
 
@@ -113,3 +115,58 @@ class MealSlot(models.Model):
 
     def __str__(self):
         return f"{self.date} {self.get_meal_time_display()} - {self.recipe.title}"
+
+
+class ShoppingList(models.Model):
+    """A single active list -- see docs/06-phase3-tasks.md for why this isn't a history of lists."""
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Liste du {self.created_at:%Y-%m-%d}"
+
+
+class ShoppingListItem(models.Model):
+    class Source(models.TextChoices):
+        AUTO = "auto", "Généré"
+        MANUAL = "manual", "Ajouté manuellement"
+
+    shopping_list = models.ForeignKey(ShoppingList, related_name="items", on_delete=models.CASCADE)
+    ingredient = models.ForeignKey(
+        Ingredient, related_name="+", null=True, blank=True, on_delete=models.SET_NULL
+    )
+    free_text_name = models.CharField(max_length=150, blank=True)
+    quantity = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True)
+    unit = models.CharField(max_length=20, blank=True)
+    checked = models.BooleanField(default=False)
+    source = models.CharField(max_length=10, choices=Source.choices, default=Source.MANUAL)
+
+    class Meta:
+        ordering = ["ingredient__aisle_category", "id"]
+
+    @property
+    def display_name(self):
+        return self.ingredient.name if self.ingredient else self.free_text_name
+
+    def __str__(self):
+        return self.display_name
+
+
+class Deal(models.Model):
+    """Manually-flagged discount on an ingredient -- Direction B V1, see requirements.md §5."""
+
+    ingredient = models.ForeignKey(Ingredient, related_name="deals", on_delete=models.CASCADE)
+    store = models.CharField(max_length=100, blank=True)
+    sale_price = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
+    start_date = models.DateField()
+    end_date = models.DateField()
+
+    class Meta:
+        ordering = ["-start_date"]
+
+    def is_active(self, on_date=None):
+        on_date = on_date or date.today()
+        return self.start_date <= on_date <= self.end_date
+
+    def __str__(self):
+        return f"{self.ingredient.name} en rabais ({self.start_date} - {self.end_date})"

@@ -1,6 +1,16 @@
 from django.contrib import admin
 
-from .models import Ingredient, MealSlot, Recipe, RecipeIngredient, Step, Tag
+from .models import (
+    Deal,
+    Ingredient,
+    MealSlot,
+    Recipe,
+    RecipeIngredient,
+    ShoppingList,
+    ShoppingListItem,
+    Step,
+    Tag,
+)
 
 
 class StepInline(admin.TabularInline):
@@ -38,3 +48,21 @@ class MealSlotAdmin(admin.ModelAdmin):
     list_display = ["date", "meal_time", "recipe", "planned_servings"]
     list_filter = ["meal_time"]
     date_hierarchy = "date"
+
+
+class ShoppingListItemInline(admin.TabularInline):
+    model = ShoppingListItem
+    extra = 0
+
+
+@admin.register(ShoppingList)
+class ShoppingListAdmin(admin.ModelAdmin):
+    list_display = ["created_at"]
+    inlines = [ShoppingListItemInline]
+
+
+@admin.register(Deal)
+class DealAdmin(admin.ModelAdmin):
+    list_display = ["ingredient", "store", "sale_price", "start_date", "end_date"]
+    list_filter = ["store"]
+    date_hierarchy = "start_date"
