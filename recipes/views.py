@@ -10,8 +10,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 from django.views.generic import DetailView, ListView
 
-from .forms import DealForm, RecipeForm, RecipeIngredientFormSet, StepFormSet
-from .models import Deal, MealSlot, Recipe, ShoppingList, ShoppingListItem, Tag
+from .forms import DealForm, RecipeForm, RecipeIngredientFormSet, StepFormSet, StockItemForm
+from .models import Deal, MealSlot, Recipe, ShoppingList, ShoppingListItem, StockItem, Tag
 
 SURPRISE_CANDIDATE_POOL_SIZE = 5
 
@@ -308,6 +308,44 @@ def deals_view(request):
             "today": date.today(),
         },
     )
+
+
+@login_required
+def pantry_view(request):
+    if request.method == "POST":
+        form = StockItemForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect("recipes:pantry")
+    else:
+        form = StockItemForm()
+
+    return render(
+        request,
+        "recipes/pantry.html",
+        {"form": form, "stock_items": StockItem.objects.select_related("ingredient")},
+    )
+
+
+@login_required
+def edit_stock_item(request, pk):
+    item = get_object_or_404(StockItem, pk=pk)
+    if request.method == "POST":
+        form = StockItemForm(request.POST, instance=item)
+        if form.is_valid():
+            form.save()
+            return redirect("recipes:pantry")
+    else:
+        form = StockItemForm(instance=item)
+
+    return render(request, "recipes/pantry_form.html", {"form": form, "item": item})
+
+
+@login_required
+@require_POST
+def delete_stock_item(request, pk):
+    get_object_or_404(StockItem, pk=pk).delete()
+    return redirect("recipes:pantry")
 
 
 @login_required

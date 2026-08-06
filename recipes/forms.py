@@ -1,7 +1,7 @@
 from django import forms
 from django.forms import inlineformset_factory
 
-from .models import Deal, Recipe, RecipeIngredient, Step, Tag
+from .models import Deal, Recipe, RecipeIngredient, StockItem, Step, Tag
 
 
 class RecipeForm(forms.ModelForm):
@@ -48,3 +48,10 @@ class DealForm(forms.ModelForm):
             "start_date": forms.DateInput(attrs={"type": "date"}),
             "end_date": forms.DateInput(attrs={"type": "date"}),
         }
+
+
+class StockItemForm(forms.ModelForm):
+    class Meta:
+        model = StockItem
+        fields = ["ingredient", "quantity", "unit", "location", "expiry_date"]
+        widgets = {"expiry_date": forms.DateInput(attrs={"type": "date"})}

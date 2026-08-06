@@ -13,6 +13,7 @@ from .models import (
     RecipeIngredient,
     ShoppingList,
     ShoppingListItem,
+    StockItem,
     Tag,
 )
 
@@ -429,3 +430,105 @@ class DealTests(RecipesTestCase):
 
         response = self.client.get(reverse("recipes:list"))
         self.assertNotIn(recipe.pk, response.context["deal_recipe_ids"])
+
+
+class PantryTests(RecipesTestCase):
+    def test_add_stock_item(self):
+        response = self.client.post(
+            reverse("recipes:pantry"),
+            {
+                "ingredient": self.ingredient.pk,
+                "quantity": "500",
+                "unit": "g",
+                "location": "pantry",
+                "expiry_date": "",
+            },
+        )
+        self.assertRedirects(response, reverse("recipes:pantry"))
+        item = StockItem.objects.get(ingredient=self.ingredient)
+        self.assertEqual(item.quantity, Decimal("500"))
+        self.assertEqual(item.location, "pantry")
+
+    def test_edit_stock_item(self):
+        item = StockItem.objects.create(
+            ingredient=self.ingredient, quantity=100, unit="g", location="fridge"
+        )
+        response = self.client.post(
+            reverse("recipes:edit_stock_item", args=[item.pk]),
+            {
+                "ingredient": self.ingredient.pk,
+                "quantity": "250",
+                "unit": "g",
+                "location": "freezer",
+                "expiry_date": "",
+            },
+        )
+        self.assertRedirects(response, reverse("recipes:pantry"))
+        item.refresh_from_db()
+        self.assertEqual(item.quantity, Decimal("250"))
+        self.assertEqual(item.location, "freezer")
+
+    def test_delete_stock_item(self):
+        item = StockItem.objects.create(ingredient=self.ingredient, quantity=100, unit="g")
+        response = self.client.post(reverse("recipes:delete_stock_item", args=[item.pk]))
+        self.assertRedirects(response, reverse("recipes:pantry"))
+        self.assertFalse(StockItem.objects.filter(pk=item.pk).exists())
+
+    def test_is_expiring_soon_boundaries(self):
+        no_expiry = StockItem.objects.create(ingredient=self.ingredient, quantity=1, unit="g")
+        self.assertFalse(no_expiry.is_expiring_soon)
+        self.assertFalse(no_expiry.is_expired)
+
+        exactly_at_threshold = StockItem.objects.create(
+            ingredient=self.ingredient,
+            quantity=1,
+            unit="g",
+            expiry_date=date.today() + timedelta(days=StockItem.EXPIRY_WARNING_DAYS),
+        )
+        self.assertTrue(exactly_at_threshold.is_expiring_soon)
+
+        just_after_threshold = StockItem.objects.create(
+            ingredient=self.ingredient,
+            quantity=1,
+            unit="g",
+            expiry_date=date.today() + timedelta(days=StockItem.EXPIRY_WARNING_DAYS + 1),
+        )
+        self.assertFalse(just_after_threshold.is_expiring_soon)
+
+        expired = StockItem.objects.create(
+            ingredient=self.ingredient,
+            quantity=1,
+            unit="g",
+            expiry_date=date.today() - timedelta(days=1),
+        )
+        self.assertTrue(expired.is_expired)
+        self.assertTrue(expired.is_expiring_soon)
+
+    def test_pantry_list_sorted_soonest_expiry_first_nulls_last(self):
+        no_expiry = StockItem.objects.create(ingredient=self.ingredient, quantity=1, unit="g")
+        soon = StockItem.objects.create(
+            ingredient=self.ingredient,
+            quantity=1,
+            unit="g",
+            expiry_date=date.today() + timedelta(days=1),
+        )
+        later = StockItem.objects.create(
+            ingredient=self.ingredient,
+            quantity=1,
+            unit="g",
+            expiry_date=date.today() + timedelta(days=10),
+        )
+        self.assertEqual(
+            list(StockItem.objects.values_list("pk", flat=True)),
+            [soon.pk, later.pk, no_expiry.pk],
+        )
+
+    def test_expiry_badge_shown_on_pantry_page(self):
+        StockItem.objects.create(
+            ingredient=self.ingredient,
+            quantity=1,
+            unit="g",
+            expiry_date=date.today() - timedelta(days=1),
+        )
+        response = self.client.get(reverse("recipes:pantry"))
+        self.assertContains(response, "Périmé")

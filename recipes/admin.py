@@ -8,6 +8,7 @@ from .models import (
     RecipeIngredient,
     ShoppingList,
     ShoppingListItem,
+    StockItem,
     Step,
     Tag,
 )
@@ -66,3 +67,10 @@ class DealAdmin(admin.ModelAdmin):
     list_display = ["ingredient", "store", "sale_price", "start_date", "end_date"]
     list_filter = ["store"]
     date_hierarchy = "start_date"
+
+
+@admin.register(StockItem)
+class StockItemAdmin(admin.ModelAdmin):
+    list_display = ["ingredient", "quantity", "unit", "location", "expiry_date"]
+    list_filter = ["location"]
+    date_hierarchy = "expiry_date"

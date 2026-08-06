@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Modifier un article — ForkCast{% endblock %}
+{% block content %}
+<h1>Modifier : {{ item.ingredient.name }}</h1>
+
+<form method="post">
+    {% csrf_token %}
+    <label for="{{ form.ingredient.id_for_label }}">Ingrédient</label>
+    {{ form.ingredient }}
+    <label for="{{ form.quantity.id_for_label }}">Quantité</label>
+    {{ form.quantity }}
+    <label for="{{ form.unit.id_for_label }}">Unité</label>
+    {{ form.unit }}
+    <label for="{{ form.location.id_for_label }}">Emplacement</label>
+    {{ form.location }}
+    <label for="{{ form.expiry_date.id_for_label }}">Date de péremption</label>
+    {{ form.expiry_date }}
+    <button type="submit">Enregistrer</button>
+</form>
+{% endblock %}
