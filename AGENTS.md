@@ -50,6 +50,12 @@
   5. Merge the PR (`gh pr merge`) once CI is green and reviewed/validated, then delete the branch.
   - For an isolated trivial fix (typo, doc), the full cycle isn't required — but when in doubt,
     apply it rather than pushing straight to `master`.
+  - **Escape hatch**: if CI itself is broken by a GitHub-side outage (not the code) —
+    confirmed by an explicit infra error like "Service Unavailable" resolving actions or "job
+    was not acquired by Runner ... even after multiple attempts", not just a slow queue — it's
+    fine to merge on local `manage.py test` results after checking with the user. Don't assume
+    "probably just a blip" without that kind of explicit error message; this happened once
+    (2026-08-06, PR #9) and is documented in `docs/00-journal-de-bord.md`.
 - **Automated tests live in `recipes/tests.py` and must stay real.** When adding a feature,
   convert whatever manual verification you did (curl, Playwright, a one-off script) into a
   committed test rather than throwing it away — that's the whole point of having CI. Don't let
