@@ -7,6 +7,19 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
     <script defer src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js"></script>
+    <style>
+        /* Pico's [role=group] lays out inputs+button side by side, which gets too cramped on
+           narrow screens (e.g. the Surprise-me / search filters). Stack them below ~480px. */
+        @media (max-width: 480px) {
+            [role="group"] {
+                flex-direction: column;
+            }
+            [role="group"] > * {
+                border-radius: var(--pico-border-radius) !important;
+                margin-bottom: 0.5rem;
+            }
+        }
+    </style>
 </head>
 <body>
     <nav class="container">
