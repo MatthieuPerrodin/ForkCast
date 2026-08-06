@@ -41,6 +41,7 @@
 
     <h2>Ingrédients</h2>
     {{ ingredients_formset.management_form }}
+    <div style="overflow-x: auto;">
     <table>
         <thead>
             <tr><th>Ingrédient</th><th>Quantité</th><th>Unité</th><th></th></tr>
@@ -51,6 +52,7 @@
             {% endfor %}
         </tbody>
     </table>
+    </div>
     <button type="button"
             hx-get="{% url 'recipes:ingredient_row' %}"
             hx-include="#id_ingredients-TOTAL_FORMS"

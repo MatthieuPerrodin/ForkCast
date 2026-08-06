@@ -58,7 +58,12 @@
       APIs enabled. **Actual `gcloud run deploy` still pending**: deploying now would mean SQLite
       on Cloud Run's non-persistent disk, which loses data on every instance restart -- not worth
       shipping until `DATABASE_URL` points to the real Supabase Postgres instance.
-- [ ] T20 — Quick responsive review (mobile/desktop) of the list/detail/form pages.
+- [x] T20 — Responsive review (mobile 375px/desktop 1280px) of list/detail/form pages, checked
+      with real Playwright screenshots + a horizontal-overflow assertion, not just a visual guess.
+      Found and fixed a real bug (the ingredient table pushed the whole page wider than the
+      viewport on mobile — wrapped it in an `overflow-x: auto` container instead), plus a
+      usability polish on the headline "Surprise me" feature (its filter fields were legible but
+      cramped/truncated on mobile — now stack vertically below 480px).
 
 ### Blocked on the user
 
