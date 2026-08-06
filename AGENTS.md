@@ -44,9 +44,16 @@
   2. Build it, then **actually test it** before opening the PR (verify the relevant critical path
      — see the verification rule below — not just `manage.py check`).
   3. Open a Pull Request on GitHub (`gh pr create`) describing what changes and why.
-  4. Merge the PR (`gh pr merge`) once reviewed/validated, then delete the branch.
+  4. **Wait for the CI check to pass** (`.github/workflows/ci.yml`: `manage.py check` + the full
+     test suite + `collectstatic`) — check with `gh pr checks <number>`, don't just assume it's
+     green. A red check means something regressed; fix it on the branch before merging.
+  5. Merge the PR (`gh pr merge`) once CI is green and reviewed/validated, then delete the branch.
   - For an isolated trivial fix (typo, doc), the full cycle isn't required — but when in doubt,
     apply it rather than pushing straight to `master`.
+- **Automated tests live in `recipes/tests.py` and must stay real.** When adding a feature,
+  convert whatever manual verification you did (curl, Playwright, a one-off script) into a
+  committed test rather than throwing it away — that's the whole point of having CI. Don't let
+  `tests.py` go stale while verification happens ad hoc elsewhere.
 - The stack (above) is validated — stick to it. If an architecture or tooling change seems needed
   along the way, discuss it with the user before implementing, and document the decision in
   `docs/03-tech-stack.md` plus a journal entry.
