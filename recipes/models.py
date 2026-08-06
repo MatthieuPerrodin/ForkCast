@@ -91,3 +91,25 @@ class RecipeIngredient(models.Model):
 
     def __str__(self):
         return f"{self.quantity} {self.unit} {self.ingredient.name}"
+
+
+class MealSlot(models.Model):
+    """A recipe assigned to a day + meal time. A slot only exists once assigned -- see
+    docs/05-phase2-tasks.md for why "unplanned" is modeled as "no row" rather than a nullable FK.
+    """
+
+    class MealTime(models.TextChoices):
+        LUNCH = "lunch", "Midi"
+        DINNER = "dinner", "Soir"
+
+    date = models.DateField()
+    meal_time = models.CharField(max_length=10, choices=MealTime.choices)
+    recipe = models.ForeignKey(Recipe, related_name="meal_slots", on_delete=models.CASCADE)
+    planned_servings = models.PositiveIntegerField()
+
+    class Meta:
+        unique_together = ("date", "meal_time")
+        ordering = ["date", "meal_time"]
+
+    def __str__(self):
+        return f"{self.date} {self.get_meal_time_display()} - {self.recipe.title}"

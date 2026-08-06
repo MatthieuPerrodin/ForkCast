@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Ingredient, Recipe, RecipeIngredient, Step, Tag
+from .models import Ingredient, MealSlot, Recipe, RecipeIngredient, Step, Tag
 
 
 class StepInline(admin.TabularInline):
@@ -31,3 +31,10 @@ class IngredientAdmin(admin.ModelAdmin):
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
     search_fields = ["name"]
+
+
+@admin.register(MealSlot)
+class MealSlotAdmin(admin.ModelAdmin):
+    list_display = ["date", "meal_time", "recipe", "planned_servings"]
+    list_filter = ["meal_time"]
+    date_hierarchy = "date"

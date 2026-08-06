@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Planning — ForkCast{% endblock %}
+{% block content %}
+<h1>Planning des repas</h1>
+
+<nav>
+    <ul>
+        <li><a href="{% url 'recipes:planning_week' prev_year prev_week %}">&larr; Semaine précédente</a></li>
+    </ul>
+    <ul>
+        <li>Semaine du {{ week_start }} au {{ week_end }}</li>
+    </ul>
+    <ul>
+        <li><a href="{% url 'recipes:planning_week' next_year next_week %}">Semaine suivante &rarr;</a></li>
+    </ul>
+</nav>
+
+{% for day in grid %}
+<article>
+    <h3>{{ day.date|date:"l j F" }}</h3>
+    <div class="grid">
+        {% for meal_time, label, slot in day.slots %}
+        <div>
+            <strong>{{ label }}</strong>
+            {% if slot %}
+            <p>
+                <a href="{% url 'recipes:detail' slot.recipe.pk %}">{{ slot.recipe.title }}</a>
+                ({{ slot.planned_servings }} portions)
+            </p>
+            <form method="post" action="{% url 'recipes:clear_slot' slot.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.path }}">
+                <button type="submit" class="secondary outline">Retirer</button>
+            </form>
+            {% else %}
+            <form method="post" action="{% url 'recipes:set_slot' %}">
+                {% csrf_token %}
+                <input type="hidden" name="date" value="{{ day.date|date:'Y-m-d' }}">
+                <input type="hidden" name="meal_time" value="{{ meal_time }}">
+                <input type="hidden" name="next" value="{{ request.path }}">
+                <select name="recipe" required>
+                    <option value="">Choisir une recette...</option>
+                    {% for recipe in recipes %}
+                    <option value="{{ recipe.id }}">{{ recipe.title }}</option>
+                    {% endfor %}
+                </select>
+                <input type="number" name="planned_servings" min="1" placeholder="Portions">
+                <button type="submit">Ajouter</button>
+            </form>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</article>
+{% endfor %}
+{% endblock %}

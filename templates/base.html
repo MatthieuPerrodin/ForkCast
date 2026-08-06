@@ -28,6 +28,8 @@
         </ul>
         {% if user.is_authenticated %}
         <ul>
+            <li><a href="{% url 'recipes:list' %}">Recettes</a></li>
+            <li><a href="{% url 'recipes:planning' %}">Planning</a></li>
             <li><a href="{% url 'recipes:logout' %}">Déconnexion</a></li>
         </ul>
         {% endif %}
