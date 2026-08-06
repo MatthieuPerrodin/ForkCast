@@ -15,6 +15,11 @@
     </ul>
 </nav>
 
+<form method="post" action="{% url 'recipes:generate_shopping_list' year week %}">
+    {% csrf_token %}
+    <button type="submit">🛒 Générer la liste de courses depuis cette semaine</button>
+</form>
+
 {% for day in grid %}
 <article>
     <h3>{{ day.date|date:"l j F" }}</h3>

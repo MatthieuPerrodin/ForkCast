@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% load l10n %}
+{% block title %}Liste de courses — ForkCast{% endblock %}
+{% block content %}
+<h1>Liste de courses</h1>
+
+{% if not shopping_list %}
+<p>
+    Aucune liste pour l'instant. Génère-en une depuis le
+    <a href="{% url 'recipes:planning' %}">planning des repas</a>.
+</p>
+{% else %}
+<ul>
+    {% for item in items %}
+    <li>
+        <form method="post" action="{% url 'recipes:toggle_shopping_item' item.pk %}" style="display:inline">
+            {% csrf_token %}
+            <label style="{% if item.checked %}text-decoration: line-through; opacity: 0.6;{% endif %}">
+                <input type="checkbox" onchange="this.form.requestSubmit()" {% if item.checked %}checked{% endif %}>
+                {% if item.quantity %}{% localize off %}{{ item.quantity }}{% endlocalize %} {{ item.unit }} — {% endif %}{{ item.display_name }}
+            </label>
+        </form>
+    </li>
+    {% empty %}
+    <li>La liste est vide.</li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+<h2>Ajouter un article</h2>
+<form method="post" action="{% url 'recipes:add_shopping_item' %}">
+    {% csrf_token %}
+    <fieldset role="group">
+        <input type="text" name="free_text_name" placeholder="Article (ex: papier essuie-tout)" required>
+        <input type="number" name="quantity" placeholder="Quantité" step="0.01">
+        <input type="text" name="unit" placeholder="Unité">
+        <button type="submit">Ajouter</button>
+    </fieldset>
+</form>
+{% endblock %}

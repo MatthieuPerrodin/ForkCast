@@ -19,6 +19,18 @@ urlpatterns = [
     path("planning/<int:year>/W<int:week>/", views.planning_week, name="planning_week"),
     path("planning/slot/set/", views.set_slot, name="set_slot"),
     path("planning/slot/<int:pk>/clear/", views.clear_slot, name="clear_slot"),
+    path("shopping-list/", views.shopping_list_view, name="shopping_list"),
+    path(
+        "shopping-list/generate/<int:year>/W<int:week>/",
+        views.generate_shopping_list,
+        name="generate_shopping_list",
+    ),
+    path("shopping-list/item/add/", views.add_shopping_item, name="add_shopping_item"),
+    path(
+        "shopping-list/item/<int:pk>/toggle/",
+        views.toggle_shopping_item,
+        name="toggle_shopping_item",
+    ),
     path("ingredients/new-row/", views.add_ingredient_row, name="ingredient_row"),
     path("steps/new-row/", views.add_step_row, name="step_row"),
     path("<int:pk>/", views.RecipeDetailView.as_view(), name="detail"),

@@ -1,10 +1,19 @@
 from datetime import date, timedelta
+from decimal import Decimal
 
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 
-from .models import Ingredient, MealSlot, Recipe, RecipeIngredient, Tag
+from .models import (
+    Ingredient,
+    MealSlot,
+    Recipe,
+    RecipeIngredient,
+    ShoppingList,
+    ShoppingListItem,
+    Tag,
+)
 
 
 class RecipesTestCase(TestCase):
@@ -229,3 +238,127 @@ class MealPlanningTests(RecipesTestCase):
         response = self.client.get(self.week_url)
         self.assertContains(response, "Carbonara")
         self.assertContains(response, "3 portions")
+
+
+class ShoppingListTests(RecipesTestCase):
+    def setUp(self):
+        super().setUp()
+        self.year, self.week, _ = date.today().isocalendar()
+        self.monday = date.fromisocalendar(self.year, self.week, 1)
+        self.tuesday = self.monday + timedelta(days=1)
+        self.generate_url = reverse(
+            "recipes:generate_shopping_list", args=[self.year, self.week]
+        )
+
+    def test_generate_aggregates_same_ingredient_and_unit_across_recipes(self):
+        recipe_a = Recipe.objects.create(title="A", prep_time_min=10, default_servings=2)
+        RecipeIngredient.objects.create(
+            recipe=recipe_a, ingredient=self.ingredient, quantity=100, unit="g"
+        )
+        recipe_b = Recipe.objects.create(title="B", prep_time_min=10, default_servings=2)
+        RecipeIngredient.objects.create(
+            recipe=recipe_b, ingredient=self.ingredient, quantity=50, unit="g"
+        )
+        MealSlot.objects.create(
+            date=self.monday, meal_time="lunch", recipe=recipe_a, planned_servings=2
+        )
+        MealSlot.objects.create(
+            date=self.tuesday, meal_time="dinner", recipe=recipe_b, planned_servings=2
+        )
+
+        response = self.client.post(self.generate_url)
+        self.assertRedirects(response, reverse("recipes:shopping_list"))
+
+        item = ShoppingListItem.objects.get(ingredient=self.ingredient, unit="g")
+        self.assertEqual(item.quantity, Decimal("150.00"))
+        self.assertEqual(item.source, ShoppingListItem.Source.AUTO)
+
+    def test_generate_scales_by_planned_servings(self):
+        recipe = Recipe.objects.create(title="A", prep_time_min=10, default_servings=4)
+        RecipeIngredient.objects.create(
+            recipe=recipe, ingredient=self.ingredient, quantity=100, unit="g"
+        )
+        MealSlot.objects.create(
+            date=self.monday, meal_time="lunch", recipe=recipe, planned_servings=2
+        )
+
+        self.client.post(self.generate_url)
+
+        item = ShoppingListItem.objects.get(ingredient=self.ingredient)
+        self.assertEqual(item.quantity, Decimal("50.00"))  # 100 * (2/4)
+
+    def test_generate_keeps_different_units_separate(self):
+        recipe_a = Recipe.objects.create(title="A", prep_time_min=10, default_servings=2)
+        RecipeIngredient.objects.create(
+            recipe=recipe_a, ingredient=self.ingredient, quantity=100, unit="g"
+        )
+        recipe_b = Recipe.objects.create(title="B", prep_time_min=10, default_servings=2)
+        RecipeIngredient.objects.create(
+            recipe=recipe_b, ingredient=self.ingredient, quantity=1, unit="tasse"
+        )
+        MealSlot.objects.create(
+            date=self.monday, meal_time="lunch", recipe=recipe_a, planned_servings=2
+        )
+        MealSlot.objects.create(
+            date=self.tuesday, meal_time="dinner", recipe=recipe_b, planned_servings=2
+        )
+
+        self.client.post(self.generate_url)
+
+        self.assertEqual(
+            ShoppingListItem.objects.filter(ingredient=self.ingredient).count(), 2
+        )
+
+    def test_regenerate_overwrites_auto_but_preserves_manual_and_checked(self):
+        recipe = Recipe.objects.create(title="A", prep_time_min=10, default_servings=2)
+        RecipeIngredient.objects.create(
+            recipe=recipe, ingredient=self.ingredient, quantity=100, unit="g"
+        )
+        MealSlot.objects.create(
+            date=self.monday, meal_time="lunch", recipe=recipe, planned_servings=2
+        )
+
+        self.client.post(self.generate_url)
+        auto_item = ShoppingListItem.objects.get(source=ShoppingListItem.Source.AUTO)
+        auto_item.checked = True
+        auto_item.save()
+
+        self.client.post(
+            reverse("recipes:add_shopping_item"),
+            {"free_text_name": "Papier essuie-tout", "quantity": "", "unit": ""},
+        )
+        manual_item = ShoppingListItem.objects.get(source=ShoppingListItem.Source.MANUAL)
+        manual_item.checked = True
+        manual_item.save()
+
+        self.client.post(self.generate_url)
+
+        self.assertEqual(
+            ShoppingListItem.objects.filter(source=ShoppingListItem.Source.AUTO).count(), 1
+        )
+        new_auto_item = ShoppingListItem.objects.get(source=ShoppingListItem.Source.AUTO)
+        self.assertFalse(new_auto_item.checked)
+
+        manual_item.refresh_from_db()
+        self.assertTrue(manual_item.checked)
+        self.assertEqual(manual_item.display_name, "Papier essuie-tout")
+
+    def test_toggle_checked(self):
+        shopping_list = ShoppingList.objects.create()
+        item = ShoppingListItem.objects.create(
+            shopping_list=shopping_list, ingredient=self.ingredient, quantity=100, unit="g"
+        )
+        response = self.client.post(reverse("recipes:toggle_shopping_item", args=[item.pk]))
+        self.assertRedirects(response, reverse("recipes:shopping_list"))
+        item.refresh_from_db()
+        self.assertTrue(item.checked)
+
+    def test_add_manual_item(self):
+        response = self.client.post(
+            reverse("recipes:add_shopping_item"),
+            {"free_text_name": "Sacs poubelle", "quantity": "2", "unit": "boîtes"},
+        )
+        self.assertRedirects(response, reverse("recipes:shopping_list"))
+        item = ShoppingListItem.objects.get(free_text_name="Sacs poubelle")
+        self.assertEqual(item.source, ShoppingListItem.Source.MANUAL)
+        self.assertEqual(item.quantity, Decimal("2"))
