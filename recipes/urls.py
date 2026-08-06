@@ -31,6 +31,7 @@ urlpatterns = [
         views.toggle_shopping_item,
         name="toggle_shopping_item",
     ),
+    path("deals/", views.deals_view, name="deals"),
     path("ingredients/new-row/", views.add_ingredient_row, name="ingredient_row"),
     path("steps/new-row/", views.add_step_row, name="step_row"),
     path("<int:pk>/", views.RecipeDetailView.as_view(), name="detail"),
