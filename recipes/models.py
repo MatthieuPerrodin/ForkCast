@@ -9,9 +9,10 @@ label shown in the UI -- the household using this app is French-speaking, only t
 docs are in English.
 """
 
-from datetime import date
+from datetime import date, timedelta
 
 from django.db import models
+from django.db.models import F
 
 
 class Ingredient(models.Model):
@@ -170,3 +171,38 @@ class Deal(models.Model):
 
     def __str__(self):
         return f"{self.ingredient.name} en rabais ({self.start_date} - {self.end_date})"
+
+
+class StockItem(models.Model):
+    """One purchased lot of an ingredient in the pantry -- see docs/07-phase4-tasks.md for why
+    this is per-lot rather than a running total (different lots expire at different times)."""
+
+    class Location(models.TextChoices):
+        PANTRY = "pantry", "Placard"
+        FRIDGE = "fridge", "Frigo"
+        FREEZER = "freezer", "Congélateur"
+
+    EXPIRY_WARNING_DAYS = 3
+
+    ingredient = models.ForeignKey(Ingredient, related_name="stock_items", on_delete=models.CASCADE)
+    quantity = models.DecimalField(max_digits=7, decimal_places=2)
+    unit = models.CharField(max_length=20)
+    location = models.CharField(max_length=10, choices=Location.choices, default=Location.PANTRY)
+    expiry_date = models.DateField(null=True, blank=True)
+    added_on = models.DateField(auto_now_add=True)
+
+    class Meta:
+        ordering = [F("expiry_date").asc(nulls_last=True), "id"]
+
+    @property
+    def is_expiring_soon(self):
+        if not self.expiry_date:
+            return False
+        return self.expiry_date <= date.today() + timedelta(days=self.EXPIRY_WARNING_DAYS)
+
+    @property
+    def is_expired(self):
+        return bool(self.expiry_date and self.expiry_date < date.today())
+
+    def __str__(self):
+        return f"{self.quantity} {self.unit} {self.ingredient.name} ({self.get_location_display()})"

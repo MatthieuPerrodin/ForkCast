@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Garde-manger — ForkCast{% endblock %}
+{% block content %}
+<h1>Garde-manger</h1>
+
+<form method="post">
+    {% csrf_token %}
+    <fieldset role="group">
+        {{ form.ingredient }}
+        {{ form.quantity }}
+        {{ form.unit }}
+        {{ form.location }}
+        {{ form.expiry_date }}
+        <button type="submit">Ajouter</button>
+    </fieldset>
+    {{ form.errors }}
+</form>
+
+<ul>
+    {% for item in stock_items %}
+    <li>
+        {% if item.is_expired %}
+        <mark>Périmé</mark>
+        {% elif item.is_expiring_soon %}
+        <mark>Bientôt périmé</mark>
+        {% endif %}
+        {{ item.quantity }} {{ item.unit }} — {{ item.ingredient.name }}
+        ({{ item.get_location_display }}{% if item.expiry_date %}, périme le {{ item.expiry_date }}{% endif %})
+        <a href="{% url 'recipes:edit_stock_item' item.pk %}">Modifier</a>
+        <form method="post" action="{% url 'recipes:delete_stock_item' item.pk %}" style="display:inline">
+            {% csrf_token %}
+            <button type="submit" class="secondary outline">Retirer</button>
+        </form>
+    </li>
+    {% empty %}
+    <li>Le garde-manger est vide.</li>
+    {% endfor %}
+</ul>
+{% endblock %}
