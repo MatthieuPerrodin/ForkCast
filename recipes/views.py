@@ -1,5 +1,5 @@
 import random
-from datetime import date
+from datetime import date, timedelta
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -10,7 +10,7 @@ from django.views.decorators.http import require_POST
 from django.views.generic import DetailView, ListView
 
 from .forms import RecipeForm, RecipeIngredientFormSet, StepFormSet
-from .models import Recipe, Tag
+from .models import MealSlot, Recipe, Tag
 
 SURPRISE_CANDIDATE_POOL_SIZE = 5
 
@@ -126,6 +126,78 @@ def surprise_me(request):
 
     recipe = random.choice(candidates)
     return redirect("recipes:detail", pk=recipe.pk)
+
+
+def _week_dates(year, week):
+    monday = date.fromisocalendar(year, week, 1)
+    return [monday + timedelta(days=i) for i in range(7)]
+
+
+@login_required
+def planning_current(request):
+    iso_year, iso_week, _ = date.today().isocalendar()
+    return redirect("recipes:planning_week", year=iso_year, week=iso_week)
+
+
+@login_required
+def planning_week(request, year, week):
+    days = _week_dates(year, week)
+    slots_by_key = {
+        (slot.date, slot.meal_time): slot
+        for slot in MealSlot.objects.filter(date__in=days).select_related("recipe")
+    }
+
+    grid = [
+        {
+            "date": day,
+            "slots": [
+                (meal_time, label, slots_by_key.get((day, meal_time)))
+                for meal_time, label in MealSlot.MealTime.choices
+            ],
+        }
+        for day in days
+    ]
+
+    prev_year, prev_week, _ = (days[0] - timedelta(days=7)).isocalendar()
+    next_year, next_week, _ = (days[0] + timedelta(days=7)).isocalendar()
+
+    return render(
+        request,
+        "recipes/planning.html",
+        {
+            "grid": grid,
+            "week_start": days[0],
+            "week_end": days[-1],
+            "prev_year": prev_year,
+            "prev_week": prev_week,
+            "next_year": next_year,
+            "next_week": next_week,
+            "recipes": Recipe.objects.order_by("title"),
+        },
+    )
+
+
+@login_required
+@require_POST
+def set_slot(request):
+    recipe = get_object_or_404(Recipe, pk=request.POST["recipe"])
+    MealSlot.objects.update_or_create(
+        date=request.POST["date"],
+        meal_time=request.POST["meal_time"],
+        defaults={
+            "recipe": recipe,
+            "planned_servings": request.POST.get("planned_servings") or recipe.default_servings,
+        },
+    )
+    return redirect(request.POST.get("next") or "recipes:planning")
+
+
+@login_required
+@require_POST
+def clear_slot(request, pk):
+    slot = get_object_or_404(MealSlot, pk=pk)
+    slot.delete()
+    return redirect(request.POST.get("next") or "recipes:planning")
 
 
 @login_required
