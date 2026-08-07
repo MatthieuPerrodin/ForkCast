@@ -318,6 +318,26 @@ class SurpriseMeTests(RecipesTestCase):
             },
         )
 
+    def test_excludes_recipes_already_planned_this_week(self):
+        already_planned = Recipe.objects.create(title="Déjà planifiée", prep_time_min=10)
+        MealSlot.objects.create(
+            date=self.monday, meal_time=MealSlot.MealTime.DINNER,
+            recipe=already_planned, planned_servings=2,
+        )
+        free = Recipe.objects.create(title="Libre", prep_time_min=10)
+
+        response = self.client.get(reverse("recipes:surprise_me"), {"max_time": 15})
+        self.assertRedirects(response, reverse("recipes:detail", args=[free.pk]))
+
+    def test_no_unplanned_recipe_left_this_week_falls_back_to_message(self):
+        only_recipe = Recipe.objects.create(title="Seule recette", prep_time_min=10)
+        MealSlot.objects.create(
+            date=self.monday, meal_time=MealSlot.MealTime.LUNCH,
+            recipe=only_recipe, planned_servings=2,
+        )
+        response = self.client.get(reverse("recipes:surprise_me"), {"max_time": 15})
+        self.assertRedirects(response, reverse("recipes:list"))
+
 
 class MealPlanningTests(RecipesTestCase):
     def setUp(self):
