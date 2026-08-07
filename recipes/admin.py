@@ -48,6 +48,7 @@ class TagAdmin(admin.ModelAdmin):
 class MealSlotAdmin(admin.ModelAdmin):
     list_display = ["date", "meal_time", "recipe", "planned_servings"]
     list_filter = ["meal_time"]
+    list_select_related = ["recipe"]
     date_hierarchy = "date"
 
 
@@ -66,6 +67,7 @@ class ShoppingListAdmin(admin.ModelAdmin):
 class DealAdmin(admin.ModelAdmin):
     list_display = ["ingredient", "store", "sale_price", "start_date", "end_date"]
     list_filter = ["store"]
+    list_select_related = ["ingredient"]
     date_hierarchy = "start_date"
 
 
@@ -73,4 +75,5 @@ class DealAdmin(admin.ModelAdmin):
 class StockItemAdmin(admin.ModelAdmin):
     list_display = ["ingredient", "quantity", "unit", "location", "expiry_date"]
     list_filter = ["location"]
+    list_select_related = ["ingredient"]
     date_hierarchy = "expiry_date"

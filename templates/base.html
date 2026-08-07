@@ -8,6 +8,12 @@
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
     <script defer src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js"></script>
     <style>
+        /* Several pages have a one-button form (delete/toggle/mark-cooked) sitting next to other
+           inline content -- avoids repeating style="display:inline" at each call site. */
+        .inline-form {
+            display: inline;
+        }
+
         /* Pico's [role=group] lays out inputs+button side by side, which gets too cramped on
            narrow screens (e.g. the Surprise-me / search filters). Stack them below ~480px. */
         @media (max-width: 480px) {

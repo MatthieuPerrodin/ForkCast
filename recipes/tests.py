@@ -19,7 +19,8 @@ from .models import (
 
 
 class RecipesTestCase(TestCase):
-    """Common fixtures: a logged-in user, one ingredient, one tag."""
+    """Common fixtures: a logged-in user, one ingredient, one tag, and this week's ISO
+    year/week/Monday -- several test classes need a real week to hang MealSlots off of."""
 
     def setUp(self):
         User.objects.create_user(username="famille", password="testpass123")
@@ -28,6 +29,8 @@ class RecipesTestCase(TestCase):
             name="Riz", default_unit="g", aisle_category="pantry"
         )
         self.tag = Tag.objects.create(name="rapide")
+        self.year, self.week, _ = date.today().isocalendar()
+        self.monday = date.fromisocalendar(self.year, self.week, 1)
 
 
 class RecipeCRUDTests(RecipesTestCase):
@@ -179,8 +182,6 @@ class MealPlanningTests(RecipesTestCase):
         self.other_recipe = Recipe.objects.create(
             title="Salade", prep_time_min=5, default_servings=2
         )
-        self.year, self.week, _ = date.today().isocalendar()
-        self.monday = date.fromisocalendar(self.year, self.week, 1)
         self.week_url = reverse("recipes:planning_week", args=[self.year, self.week])
 
     def test_current_week_redirect(self):
@@ -245,8 +246,6 @@ class MealPlanningTests(RecipesTestCase):
 class ShoppingListTests(RecipesTestCase):
     def setUp(self):
         super().setUp()
-        self.year, self.week, _ = date.today().isocalendar()
-        self.monday = date.fromisocalendar(self.year, self.week, 1)
         self.tuesday = self.monday + timedelta(days=1)
         self.generate_url = reverse(
             "recipes:generate_shopping_list", args=[self.year, self.week]
@@ -413,8 +412,7 @@ class DealTests(RecipesTestCase):
         self.assertNotIn(other_recipe.pk, response.context["deal_recipe_ids"])
         self.assertContains(response, "en rabais")
 
-        year, week, _ = date.today().isocalendar()
-        response = self.client.get(reverse("recipes:planning_week", args=[year, week]))
+        response = self.client.get(reverse("recipes:planning_week", args=[self.year, self.week]))
         self.assertIn(on_sale_recipe.pk, response.context["deal_recipe_ids"])
 
     def test_expired_deal_does_not_flag_recipe(self):
@@ -536,35 +534,31 @@ class PantryTests(RecipesTestCase):
 
 class StockIntegrationTests(RecipesTestCase):
     def test_generate_subtracts_available_stock(self):
-        year, week, _ = date.today().isocalendar()
-        monday = date.fromisocalendar(year, week, 1)
         recipe = Recipe.objects.create(title="A", prep_time_min=10, default_servings=2)
         RecipeIngredient.objects.create(
             recipe=recipe, ingredient=self.ingredient, quantity=100, unit="g"
         )
         MealSlot.objects.create(
-            date=monday, meal_time="lunch", recipe=recipe, planned_servings=2
+            date=self.monday, meal_time="lunch", recipe=recipe, planned_servings=2
         )
         StockItem.objects.create(ingredient=self.ingredient, quantity=30, unit="g")
 
-        self.client.post(reverse("recipes:generate_shopping_list", args=[year, week]))
+        self.client.post(reverse("recipes:generate_shopping_list", args=[self.year, self.week]))
 
         item = ShoppingListItem.objects.get(ingredient=self.ingredient)
         self.assertEqual(item.quantity, Decimal("70"))
 
     def test_generate_drops_line_when_stock_fully_covers_need(self):
-        year, week, _ = date.today().isocalendar()
-        monday = date.fromisocalendar(year, week, 1)
         recipe = Recipe.objects.create(title="A", prep_time_min=10, default_servings=2)
         RecipeIngredient.objects.create(
             recipe=recipe, ingredient=self.ingredient, quantity=100, unit="g"
         )
         MealSlot.objects.create(
-            date=monday, meal_time="lunch", recipe=recipe, planned_servings=2
+            date=self.monday, meal_time="lunch", recipe=recipe, planned_servings=2
         )
         StockItem.objects.create(ingredient=self.ingredient, quantity=150, unit="g")
 
-        self.client.post(reverse("recipes:generate_shopping_list", args=[year, week]))
+        self.client.post(reverse("recipes:generate_shopping_list", args=[self.year, self.week]))
 
         self.assertFalse(ShoppingListItem.objects.filter(ingredient=self.ingredient).exists())
 
