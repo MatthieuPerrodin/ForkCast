@@ -48,8 +48,11 @@ class RecipeListView(LoginRequiredMixin, ListView):
         search = self.request.GET.get("q")
         if search:
             queryset = queryset.filter(title__icontains=search)
-        tag_id = self.request.GET.get("tag")
-        if tag_id:
+        # AND semantics: selecting both "vegetarian" and "gluten-free" should mean a recipe
+        # satisfies both restrictions at once, not either one -- so each tag gets its own
+        # .filter() call (its own join), rather than a single tags__id__in=[...] which would OR
+        # them together on one join.
+        for tag_id in self.request.GET.getlist("tag"):
             queryset = queryset.filter(tags__id=tag_id)
         for field in self.ENUM_FILTERS:
             value = self.request.GET.get(field)
@@ -61,7 +64,7 @@ class RecipeListView(LoginRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         context["tags"] = Tag.objects.all()
         context["search"] = self.request.GET.get("q", "")
-        context["selected_tag"] = self.request.GET.get("tag", "")
+        context["selected_tags"] = self.request.GET.getlist("tag")
         context["nutrition_score_choices"] = Recipe.NutritionScore.choices
         context["meal_moment_choices"] = Recipe.MealMoment.choices
         context["cooking_mode_choices"] = Recipe.CookingMode.choices

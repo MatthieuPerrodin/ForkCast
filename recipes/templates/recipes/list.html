@@ -23,13 +23,15 @@
 
 <form method="get" role="search">
     <input type="search" name="q" placeholder="Rechercher une recette..." value="{{ search }}">
+    {% if tags %}
+    <fieldset>
+        <legend>Tags (ex : végétarien + sans gluten en même temps)</legend>
+        {% for tag in tags %}
+        <label><input type="checkbox" name="tag" value="{{ tag.id }}" {% if tag.id|stringformat:"s" in selected_tags %}checked{% endif %}> {{ tag.name }}</label>
+        {% endfor %}
+    </fieldset>
+    {% endif %}
     <fieldset role="group">
-        <select name="tag">
-            <option value="">Tous les tags</option>
-            {% for tag in tags %}
-            <option value="{{ tag.id }}" {% if selected_tag == tag.id|stringformat:"s" %}selected{% endif %}>{{ tag.name }}</option>
-            {% endfor %}
-        </select>
         <select name="meal_moment">
             <option value="">Tout moment</option>
             {% for value, label in meal_moment_choices %}
