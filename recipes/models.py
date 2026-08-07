@@ -32,12 +32,24 @@ class Ingredient(models.Model):
     aisle_category = models.CharField(
         max_length=20, choices=AisleCategory.choices, default=AisleCategory.OTHER
     )
+    # Reference pricing for the shopping list's cost estimate -- stored as "this much for this
+    # quantity" (e.g. $4.99 for 1000 g), matching how a price tag actually reads, rather than a
+    # single price-per-unit field (which for a per-gram price would be an awkward $0.0049 to type
+    # in and get wrong). Both optional: cost estimation is best-effort, see docs/02-data-model.md.
+    reference_quantity = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True)
+    reference_price = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
 
     class Meta:
         ordering = ["name"]
 
     def __str__(self):
         return self.name
+
+    @property
+    def unit_price(self):
+        if not self.reference_quantity or not self.reference_price:
+            return None
+        return self.reference_price / self.reference_quantity
 
 
 class Tag(models.Model):
@@ -235,6 +247,15 @@ class ShoppingList(models.Model):
 
         return shopping_list
 
+    @property
+    def estimated_total(self):
+        """Sum of estimated_cost across items with known pricing -- items without it are simply
+        left out of the total rather than trying to guess, so this is always a lower bound."""
+        return sum(
+            (item.estimated_cost for item in self.items.all() if item.estimated_cost is not None),
+            Decimal("0"),
+        )
+
 
 class ShoppingListItem(models.Model):
     class Source(models.TextChoices):
@@ -263,6 +284,18 @@ class ShoppingListItem(models.Model):
         """Human-readable aisle for grouping the list in the template -- manually-added items
         with no ingredient reference don't have an aisle, so they get their own bucket."""
         return self.ingredient.get_aisle_category_display() if self.ingredient else "Autre"
+
+    @property
+    def estimated_cost(self):
+        """Approximate cost for this line, when the ingredient has known reference pricing and
+        this item's unit matches the ingredient's own default unit -- cross-unit estimates aren't
+        attempted, same call as elsewhere for unit conversion (docs/02-data-model.md #5)."""
+        if not self.ingredient or not self.quantity or self.unit != self.ingredient.default_unit:
+            return None
+        unit_price = self.ingredient.unit_price
+        if unit_price is None:
+            return None
+        return (unit_price * self.quantity).quantize(Decimal("0.01"))
 
     def __str__(self):
         return self.display_name

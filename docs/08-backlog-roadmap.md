@@ -40,10 +40,13 @@ doesn't yet, add it there first (existing project rule, see `AGENTS.md`).
    leftover can't cover even one serving of and shows the feasible serving count for the rest.
    Entry point is a small secondary form on the recipe list (deliberately less prominent than the
    "Surprends-moi" card — this is a targeted variant of that feature, not the headline one).
-6. **Cost estimate for groceries** — `Recipe.estimated_cost` exists but is qualitative; a real
-   shopping-list total needs a price on `Ingredient` or `Deal` to sum against. Needs one new field
-   plus a total row on the shopping list template — small, but touches pricing data that doesn't
-   exist yet, hence a tier above #4/#5.
+6. ~~**Cost estimate for groceries**~~ — done: `Ingredient.reference_quantity` +
+   `reference_price` ("$4.99 for 1000 g", matching how a price tag reads) rather than the single
+   per-unit price field originally sketched here — a per-gram price would round to $0.00 at 2
+   decimal places and be awkward to type in anyway. `Ingredient` is admin-managed already (no
+   in-app form needed). `ShoppingListItem.estimated_cost` / `ShoppingList.estimated_total` skip
+   items with no pricing or a unit that doesn't match the ingredient's own unit, so the total is
+   always a lower bound, never a wrong guess.
 
 ## Tier 3 — External API integration, but a free/simple one
 

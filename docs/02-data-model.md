@@ -79,6 +79,7 @@ erDiagram
 | name | text | unique |
 | default_unit | text | g, ml, piece... |
 | aisle_category | enum | produce, pantry, frozen, dairy, meat & fish, beverages, other — used to sort the shopping list (backlog idea) |
+| reference_quantity / reference_price | decimal, optional | "$4.99 for 1000 g" — basis for the shopping list's cost estimate (see §5 for why this isn't a single price-per-unit field) |
 
 ### `RecipeIngredient` (join table)
 | Field | Type | Notes |
@@ -177,6 +178,14 @@ erDiagram
   enums above; an enum would either need constant editing or a large catch-all list. Revisit only
   if the "meal prep" backlog idea (merging shared prep steps across recipes) needs to match on
   state programmatically rather than just display it.
+- **Ingredient pricing as "$X for Y quantity", not a single price-per-unit field** (added
+  2026-08-07): a per-`default_unit` price (e.g. $/gram) would round to $0.00 at a normal 2-decimal
+  precision for anything cheap per gram, and would be awkward for the household to type in anyway
+  — nobody reads a price tag and thinks "$0.005/g." Storing it the way a price tag actually reads
+  ("$4.99 for 1000 g") and dividing at read time is both more precise and more natural to enter.
+  Both fields optional and admin-managed (`Ingredient` has no in-app create/edit form) — cost
+  estimation on the shopping list is best-effort, skipping any line without known pricing or with
+  a unit that doesn't match the ingredient's own unit, rather than guessing a conversion.
 
 ## 6. Next steps
 

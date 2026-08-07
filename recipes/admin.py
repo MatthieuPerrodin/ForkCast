@@ -34,7 +34,9 @@ class RecipeAdmin(admin.ModelAdmin):
 
 @admin.register(Ingredient)
 class IngredientAdmin(admin.ModelAdmin):
-    list_display = ["name", "default_unit", "aisle_category"]
+    list_display = [
+        "name", "default_unit", "aisle_category", "reference_quantity", "reference_price",
+    ]
     list_filter = ["aisle_category"]
     search_fields = ["name"]
 

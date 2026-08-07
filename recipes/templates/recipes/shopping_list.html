@@ -22,12 +22,17 @@
         </form>
         <span>{{ item.display_name }}</span>
         {% if item.quantity %}
-        <span class="qty">{% localize off %}{{ item.quantity }}{% endlocalize %} {{ item.unit }}</span>
+        <span class="qty">
+            {% localize off %}{{ item.quantity }}{% endlocalize %} {{ item.unit }}{% if item.estimated_cost %} · {{ item.estimated_cost }} ${% endif %}
+        </span>
         {% endif %}
     </div>
     {% endfor %}
 </div>
 {% endfor %}
+{% if shopping_list.estimated_total %}
+<p><strong>Coût estimé : {{ shopping_list.estimated_total }} $</strong> (articles avec prix connu seulement)</p>
+{% endif %}
 {% else %}
 <p>La liste est vide.</p>
 {% endif %}
