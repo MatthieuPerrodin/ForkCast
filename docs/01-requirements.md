@@ -60,6 +60,12 @@ external data source or AI processing — hence more uncertain and only worth ta
 - Receipt scanning/OCR to automatically restock the pantry after a grocery run.
 - Automatically fetching store discounts/flyers (scraping or an API like Flipp/Reebee) to
   proactively suggest what to buy — see Direction B in §5.
+- **Barcode scan via Open Food Facts** (free, no API key): scan a product coming back from the
+  store to pull its name/photo/macros automatically instead of typing them in — a concrete,
+  buildable version of "photo-based product recognition" above, useful in particular for anything
+  with a nutrition label worth capturing exactly (protein powder, etc.). Two entry points once the
+  scan-and-lookup plumbing exists: straight into the pantry (restock), or onto the shared shopping
+  list when scanning an emptied-out package at home.
 
 ## 5. Headline feature: bidirectional meal ↔ grocery loop
 
