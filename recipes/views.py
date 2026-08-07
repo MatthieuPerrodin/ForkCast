@@ -153,8 +153,17 @@ def surprise_me(request):
     if score:
         queryset = queryset.filter(nutrition_score=score)
 
-    # Anti-repetition: favour recipes never cooked or cooked a long time ago, without demanding a
-    # single "best" answer -- draw at random among the least recently cooked ones.
+    # Anti-repetition, part 1: don't re-suggest a recipe already planned elsewhere this week --
+    # last_cooked_on (below) only looks at cooking history, not the plan currently being built, so
+    # without this a recipe could get suggested for both Tuesday and Friday dinner in one pass.
+    iso_year, iso_week, _ = date.today().isocalendar()
+    already_planned_ids = MealSlot.objects.filter(
+        date__in=_week_dates(iso_year, iso_week)
+    ).values_list("recipe_id", flat=True)
+    queryset = queryset.exclude(pk__in=already_planned_ids)
+
+    # Anti-repetition, part 2: favour recipes never cooked or cooked a long time ago, without
+    # demanding a single "best" answer -- draw at random among the least recently cooked ones.
     # nulls_first is explicit: SQLite and PostgreSQL don't order NULLs the same way by default,
     # and both are used depending on the environment (see docs/03-tech-stack.md).
     queryset = queryset.order_by(F("last_cooked_on").asc(nulls_first=True))

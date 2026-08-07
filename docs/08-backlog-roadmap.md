@@ -13,7 +13,7 @@ backlog", start at the top of the first tier with an unclaimed item. Move to the
 tier is empty. Every item should map back to a bullet in `01-requirements.md` §4/§5 — if it
 doesn't yet, add it there first (existing project rule, see `AGENTS.md`).
 
-## Tier 1 — Wiring/UI only, no new model, no external dependency
+## Tier 1 — Wiring/UI only, no new model, no external dependency (done, 2026-08-07)
 
 1. ~~**Expose the new recipe metadata in the list/filters**~~ — done (PR #17):
    `meal_moment`/`cooking_mode`/`difficulty`/`estimated_cost` now filterable and shown as pills on
@@ -22,9 +22,11 @@ doesn't yet, add it there first (existing project rule, see `AGENTS.md`).
    (`RecipeListView.get_queryset` ANDs each selected tag via its own `.filter(tags__id=...)` call)
    instead of a single-select dropdown, so selecting "vegetarian" + "gluten-free" together requires
    both, not either.
-3. **Strengthen rotation/anti-repetition** — `surprise_me` already deprioritizes by
-   `last_cooked_on`, but nothing stops the same recipe being picked twice in one planning week.
-   Add a check against the current week's `MealSlot`s already assigned that recipe.
+3. ~~**Strengthen rotation/anti-repetition**~~ — done: `surprise_me` now excludes recipes already
+   assigned to any `MealSlot` in the current ISO week before applying the existing
+   `last_cooked_on` ordering, so it won't suggest a recipe already planned for another day this
+   week. Manual assignment in the planning grid is untouched — deliberately excluding from the
+   *suggestion* algorithm only, not blocking a user's own choice to repeat a recipe on purpose.
 
 ## Tier 2 — New cross-referencing logic, still pure Django/SQL, no external calls
 
