@@ -89,9 +89,9 @@ overthinking it" — and that works in both directions.
 To evaluate over time, once phases 1-4 are stable — offered for inspiration, none of these are
 committed to yet:
 
-- **Shopping list sorted by store aisle** (produce, pantry, frozen...) to move faster through the
-  store — cheap to build now by adding a "category" field to the ingredient reference table (see
-  data model).
+- ~~**Shopping list sorted by store aisle** (produce, pantry, frozen...) to move faster through
+  the store.~~ Done — the ingredient reference table's aisle category (see data model) groups the
+  shopping list by aisle.
 - **Recipe import from a URL, or from a social video** (a website page, or an Instagram/TikTok
   recipe video) — avoids manual re-entry, a big time saver for filling the recipe book initially.
   The video variant needs transcription/extraction and is closer in complexity to the Phase 5 AI
@@ -116,6 +116,11 @@ committed to yet:
   days or weeks (sourdough starter, marinades, brewing, lacto-fermentation) — separate from meal
   planning's day/lunch-dinner grid since these don't map to a single slot, but still food-prep
   adjacent enough to belong in the app rather than a generic reminders tool.
+- **"Meal prep" mode**: when several planned recipes share a prep step (e.g. "mince 4 onions"
+  needed by 3 different recipes this week), merge them into one batched instruction instead of
+  repeating it per recipe. Needs steps to carry enough structure to detect the overlap (which
+  ingredient, which action) rather than being free text as they are now — likely depends on the
+  ingredient-state work in the data model expansion (§ingredient structure) landing first.
 
 ## 6. Detailed functional requirements (user stories)
 
