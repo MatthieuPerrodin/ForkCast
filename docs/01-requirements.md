@@ -66,6 +66,17 @@ external data source or AI processing — hence more uncertain and only worth ta
   with a nutrition label worth capturing exactly (protein powder, etc.). Two entry points once the
   scan-and-lookup plumbing exists: straight into the pantry (restock), or onto the shared shopping
   list when scanning an emptied-out package at home.
+- **Voice-driven pantry/list updates, via an existing consumer tool rather than a custom voice UI**:
+  say an item out loud (Google Assistant/Gemini, Siri Shortcuts...) and have it land in the pantry
+  or shopping list without opening the app. The common shape across the options considered: some
+  existing assistant captures speech and hands off plain text (via Google Tasks/Sheets as an
+  intermediate inbox, or a direct Shortcuts/Tasker webhook) to a small backend endpoint, which uses
+  an LLM to parse it into structured data (ingredient, quantity, unit) before writing it to the
+  actual data store. Deliberately leans on tools the user already has instead of building
+  speech-to-text in-house. Note for whoever picks this up: it presumes a small stateless API
+  endpoint receiving text and calling an LLM, which fits naturally next to the existing Django app
+  (a view) rather than requiring a separate service — no reason to introduce another backend
+  framework just for this.
 
 ## 5. Headline feature: bidirectional meal ↔ grocery loop
 

@@ -56,15 +56,51 @@ class Recipe(models.Model):
         BALANCED = "balanced", "Équilibré"
         HEARTY = "hearty", "Gourmand"
 
+    class Cost(models.TextChoices):
+        LOW = "low", "Économique"
+        MEDIUM = "medium", "Moyen"
+        HIGH = "high", "Coûteux"
+
+    class Difficulty(models.TextChoices):
+        EASY = "easy", "Facile"
+        MEDIUM = "medium", "Intermédiaire"
+        HARD = "hard", "Difficile"
+
+    class CookingMode(models.TextChoices):
+        OVEN = "oven", "Four"
+        STOVETOP = "stovetop", "Plaque"
+        NO_COOK = "no_cook", "Sans cuisson"
+        BBQ = "bbq", "BBQ"
+
+    class MealMoment(models.TextChoices):
+        BREAKFAST = "breakfast", "Petit-déjeuner"
+        LUNCH = "lunch", "Lunch"
+        DINNER = "dinner", "Souper"
+        SNACK = "snack", "Collation"
+
     title = models.CharField(max_length=150)
     description = models.TextField(blank=True)
     photo = models.ImageField(upload_to="recipes/", blank=True, null=True)
     prep_time_min = models.PositiveIntegerField()
     cook_time_min = models.PositiveIntegerField(default=0, blank=True)
+    rest_time_min = models.PositiveIntegerField(default=0, blank=True)
     default_servings = models.PositiveIntegerField(default=4)
     nutrition_score = models.CharField(
         max_length=20, choices=NutritionScore.choices, default=NutritionScore.BALANCED
     )
+    calories_kcal = models.PositiveIntegerField(null=True, blank=True)
+    protein_g = models.DecimalField(max_digits=5, decimal_places=1, null=True, blank=True)
+    carbs_g = models.DecimalField(max_digits=5, decimal_places=1, null=True, blank=True)
+    fat_g = models.DecimalField(max_digits=5, decimal_places=1, null=True, blank=True)
+    fridge_shelf_life_days = models.PositiveIntegerField(null=True, blank=True)
+    is_freezable = models.BooleanField(default=False)
+    seasonality_months = models.CharField(max_length=50, blank=True)
+    equipment_needed = models.CharField(max_length=200, blank=True)
+    estimated_cost = models.CharField(max_length=10, choices=Cost.choices, blank=True)
+    difficulty = models.CharField(max_length=10, choices=Difficulty.choices, blank=True)
+    cooking_mode = models.CharField(max_length=10, choices=CookingMode.choices, blank=True)
+    meal_moment = models.CharField(max_length=10, choices=MealMoment.choices, blank=True)
+    notes = models.TextField(blank=True)
     last_cooked_on = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     tags = models.ManyToManyField(Tag, related_name="recipes", blank=True)
@@ -74,6 +110,22 @@ class Recipe(models.Model):
 
     def __str__(self):
         return self.title
+
+    MONTH_NAMES = [
+        "Janv.", "Févr.", "Mars", "Avril", "Mai", "Juin",
+        "Juil.", "Août", "Sept.", "Oct.", "Nov.", "Déc.",
+    ]
+
+    @property
+    def seasonality_month_list(self):
+        """Parses the comma-separated month numbers into ints for template display."""
+        if not self.seasonality_months:
+            return []
+        return [int(m) for m in self.seasonality_months.split(",") if m.strip()]
+
+    @property
+    def seasonality_display(self):
+        return ", ".join(self.MONTH_NAMES[m - 1] for m in self.seasonality_month_list)
 
 
 class Step(models.Model):
@@ -93,6 +145,7 @@ class RecipeIngredient(models.Model):
     ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE)
     quantity = models.DecimalField(max_digits=6, decimal_places=2)
     unit = models.CharField(max_length=20)
+    state = models.CharField(max_length=100, blank=True)
 
     def __str__(self):
         return f"{self.quantity} {self.unit} {self.ingredient.name}"

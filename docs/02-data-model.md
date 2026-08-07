@@ -60,6 +60,7 @@ erDiagram
 | difficulty | enum (easy/medium/hard), optional | |
 | cooking_mode | enum (oven/stovetop/no_cook/bbq), optional | |
 | meal_moment | enum (breakfast/lunch/dinner/snack), optional | |
+| notes | text, optional | free-form personal remarks (e.g. "next time, less salt") — distinct from `description`, which introduces the recipe rather than accumulating notes over time |
 | last_cooked_on | date | nullable — feeds the suggestion's anti-repetition logic |
 | created_at | datetime | |
 

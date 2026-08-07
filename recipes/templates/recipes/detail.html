@@ -15,8 +15,15 @@
 <p class="meta">
     <span class="score-dot {{ recipe.nutrition_score }}"></span>{{ recipe.prep_time_min }} min de préparation
     {% if recipe.cook_time_min %}· {{ recipe.cook_time_min }} min de cuisson{% endif %}
+    {% if recipe.rest_time_min %}· {{ recipe.rest_time_min }} min de repos{% endif %}
     · {{ recipe.get_nutrition_score_display }}
 </p>
+<div class="tag-row">
+    {% if recipe.meal_moment %}<span class="pill">{{ recipe.get_meal_moment_display }}</span>{% endif %}
+    {% if recipe.cooking_mode %}<span class="pill">{{ recipe.get_cooking_mode_display }}</span>{% endif %}
+    {% if recipe.difficulty %}<span class="pill">{{ recipe.get_difficulty_display }}</span>{% endif %}
+    {% if recipe.estimated_cost %}<span class="pill">{{ recipe.get_estimated_cost_display }}</span>{% endif %}
+</div>
 <div class="button-row">
     <span>{% if recipe.last_cooked_on %}Dernière fois cuisinée le {{ recipe.last_cooked_on }}.{% else %}Jamais encore cuisinée.{% endif %}</span>
     <form method="post" action="{% url 'recipes:mark_cooked' recipe.pk %}" class="inline-form">
@@ -26,6 +33,30 @@
 </div>
 {% if recipe.photo %}<img src="{{ recipe.photo.url }}" alt="{{ recipe.title }}">{% endif %}
 {% if recipe.description %}<p>{{ recipe.description }}</p>{% endif %}
+{% if recipe.notes %}
+<h2>Commentaires</h2>
+<p>{{ recipe.notes|linebreaksbr }}</p>
+{% endif %}
+
+{% if recipe.fridge_shelf_life_days or recipe.is_freezable or recipe.seasonality_months or recipe.equipment_needed %}
+<h2>Infos pratiques</h2>
+<ul class="ingredient-list">
+    {% if recipe.fridge_shelf_life_days %}<li><span>Conservation au frigo</span><span class="qty">{{ recipe.fridge_shelf_life_days }} j</span></li>{% endif %}
+    {% if recipe.is_freezable %}<li><span>Se congèle</span><span class="qty">Oui</span></li>{% endif %}
+    {% if recipe.seasonality_months %}<li><span>Saison</span><span class="qty">{{ recipe.seasonality_display }}</span></li>{% endif %}
+    {% if recipe.equipment_needed %}<li><span>Matériel</span><span class="qty">{{ recipe.equipment_needed }}</span></li>{% endif %}
+</ul>
+{% endif %}
+
+{% if recipe.calories_kcal or recipe.protein_g or recipe.carbs_g or recipe.fat_g %}
+<h2>Nutrition (par portion)</h2>
+<ul class="ingredient-list">
+    {% if recipe.calories_kcal %}<li><span>Calories</span><span class="qty tabular">{{ recipe.calories_kcal }} kcal</span></li>{% endif %}
+    {% if recipe.protein_g %}<li><span>Protéines</span><span class="qty tabular">{{ recipe.protein_g }} g</span></li>{% endif %}
+    {% if recipe.carbs_g %}<li><span>Glucides</span><span class="qty tabular">{{ recipe.carbs_g }} g</span></li>{% endif %}
+    {% if recipe.fat_g %}<li><span>Lipides</span><span class="qty tabular">{{ recipe.fat_g }} g</span></li>{% endif %}
+</ul>
+{% endif %}
 
 <div class="grid" x-data="{ base: {{ recipe.default_servings }}, portions: {{ recipe.default_servings }} }">
     <div>
@@ -42,7 +73,7 @@
             {% for ri in recipe.recipe_ingredients.all %}
             {% localize off %}
             <li>
-                <span>{{ ri.ingredient.name }}</span>
+                <span>{{ ri.ingredient.name }}{% if ri.state %}, {{ ri.state }}{% endif %}</span>
                 <span class="qty tabular"><span x-text="Math.round({{ ri.quantity }} * portions / base * 100) / 100"></span> {{ ri.unit }}</span>
             </li>
             {% endlocalize %}

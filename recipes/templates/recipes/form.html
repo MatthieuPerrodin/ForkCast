@@ -26,6 +26,10 @@
             {{ form.cook_time_min }}
         </div>
         <div>
+            <label for="{{ form.rest_time_min.id_for_label }}">Repos (min)</label>
+            {{ form.rest_time_min }}
+        </div>
+        <div>
             <label for="{{ form.default_servings.id_for_label }}">Portions</label>
             {{ form.default_servings }}
         </div>
@@ -34,17 +38,77 @@
     <label for="{{ form.nutrition_score.id_for_label }}">Score nutritionnel</label>
     {{ form.nutrition_score }}
 
+    <h2>Nutrition (optionnel)</h2>
+    <div class="grid">
+        <div>
+            <label for="{{ form.calories_kcal.id_for_label }}">Calories (par portion)</label>
+            {{ form.calories_kcal }}
+        </div>
+        <div>
+            <label for="{{ form.protein_g.id_for_label }}">Protéines (g)</label>
+            {{ form.protein_g }}
+        </div>
+        <div>
+            <label for="{{ form.carbs_g.id_for_label }}">Glucides (g)</label>
+            {{ form.carbs_g }}
+        </div>
+        <div>
+            <label for="{{ form.fat_g.id_for_label }}">Lipides (g)</label>
+            {{ form.fat_g }}
+        </div>
+    </div>
+
+    <h2>Classification</h2>
+    <div class="grid">
+        <div>
+            <label for="{{ form.estimated_cost.id_for_label }}">Coût estimé</label>
+            {{ form.estimated_cost }}
+        </div>
+        <div>
+            <label for="{{ form.difficulty.id_for_label }}">Difficulté</label>
+            {{ form.difficulty }}
+        </div>
+        <div>
+            <label for="{{ form.cooking_mode.id_for_label }}">Mode de cuisson</label>
+            {{ form.cooking_mode }}
+        </div>
+        <div>
+            <label for="{{ form.meal_moment.id_for_label }}">Moment du repas</label>
+            {{ form.meal_moment }}
+        </div>
+    </div>
+    <label for="{{ form.equipment_needed.id_for_label }}">Matériel nécessaire</label>
+    {{ form.equipment_needed }}
+
+    <h2>Conservation &amp; saisonnalité</h2>
+    <div class="grid">
+        <div>
+            <label for="{{ form.fridge_shelf_life_days.id_for_label }}">Se garde au frigo (jours)</label>
+            {{ form.fridge_shelf_life_days }}
+        </div>
+        <div>
+            <label for="{{ form.is_freezable.id_for_label }}">{{ form.is_freezable }} Se congèle</label>
+        </div>
+    </div>
+    <fieldset>
+        <legend>Mois de saison</legend>
+        {{ form.seasonality_months }}
+    </fieldset>
+
     <fieldset>
         <legend>Tags</legend>
         {{ form.tags }}
     </fieldset>
+
+    <label for="{{ form.notes.id_for_label }}">Commentaires</label>
+    {{ form.notes }}
 
     <h2>Ingrédients</h2>
     {{ ingredients_formset.management_form }}
     <div style="overflow-x: auto;">
     <table>
         <thead>
-            <tr><th>Ingrédient</th><th>Quantité</th><th>Unité</th><th></th></tr>
+            <tr><th>Ingrédient</th><th>Quantité</th><th>Unité</th><th>État</th><th></th></tr>
         </thead>
         <tbody id="ingredients-body">
             {% for ingredient_form in ingredients_formset.forms %}

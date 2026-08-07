@@ -133,6 +133,104 @@ class RecipeCRUDTests(RecipesTestCase):
         self.assertEqual(recipe.last_cooked_on, date.today())
 
 
+class RecipeMetadataTests(RecipesTestCase):
+    def test_create_recipe_with_full_metadata(self):
+        response = self.client.post(
+            reverse("recipes:create"),
+            {
+                "title": "Bol de poulet grillé",
+                "description": "",
+                "prep_time_min": 15,
+                "cook_time_min": 20,
+                "rest_time_min": 10,
+                "default_servings": 2,
+                "nutrition_score": "balanced",
+                "calories_kcal": 550,
+                "protein_g": "45.5",
+                "carbs_g": "40.0",
+                "fat_g": "15.0",
+                "fridge_shelf_life_days": 3,
+                "is_freezable": "on",
+                "seasonality_months": ["6", "7", "8"],
+                "equipment_needed": "Poêle, mixeur",
+                "estimated_cost": "medium",
+                "difficulty": "easy",
+                "cooking_mode": "stovetop",
+                "meal_moment": "dinner",
+                "notes": "La prochaine fois, moins de sel.",
+                "tags": [self.tag.pk],
+                "ingredients-TOTAL_FORMS": 1,
+                "ingredients-INITIAL_FORMS": 0,
+                "ingredients-MIN_NUM_FORMS": 0,
+                "ingredients-MAX_NUM_FORMS": 1000,
+                "ingredients-0-ingredient": self.ingredient.pk,
+                "ingredients-0-quantity": "200",
+                "ingredients-0-unit": "g",
+                "ingredients-0-state": "haché",
+                "ingredients-0-id": "",
+                "steps-TOTAL_FORMS": 0,
+                "steps-INITIAL_FORMS": 0,
+                "steps-MIN_NUM_FORMS": 0,
+                "steps-MAX_NUM_FORMS": 1000,
+            },
+        )
+        recipe = Recipe.objects.get(title="Bol de poulet grillé")
+        self.assertRedirects(response, reverse("recipes:detail", args=[recipe.pk]))
+        self.assertEqual(recipe.rest_time_min, 10)
+        self.assertEqual(recipe.calories_kcal, 550)
+        self.assertEqual(recipe.protein_g, Decimal("45.5"))
+        self.assertTrue(recipe.is_freezable)
+        self.assertEqual(recipe.seasonality_months, "6,7,8")
+        self.assertEqual(recipe.seasonality_month_list, [6, 7, 8])
+        self.assertEqual(recipe.cooking_mode, "stovetop")
+        self.assertEqual(recipe.meal_moment, "dinner")
+        self.assertEqual(recipe.notes, "La prochaine fois, moins de sel.")
+        ri = recipe.recipe_ingredients.get()
+        self.assertEqual(ri.state, "haché")
+
+    def test_edit_recipe_preselects_seasonality_checkboxes(self):
+        recipe = Recipe.objects.create(
+            title="Gaspacho", prep_time_min=15, seasonality_months="6,7,8"
+        )
+        response = self.client.get(reverse("recipes:edit", args=[recipe.pk]))
+        form = response.context["form"]
+        self.assertEqual(sorted(form.initial["seasonality_months"]), ["6", "7", "8"])
+
+    def test_detail_page_shows_metadata_when_present(self):
+        recipe = Recipe.objects.create(
+            title="Bol de poulet grillé",
+            prep_time_min=15,
+            rest_time_min=10,
+            fridge_shelf_life_days=3,
+            is_freezable=True,
+            seasonality_months="6,7,8",
+            equipment_needed="Poêle, mixeur",
+            calories_kcal=550,
+            protein_g=Decimal("45.5"),
+            estimated_cost="medium",
+            difficulty="easy",
+            cooking_mode="stovetop",
+            meal_moment="dinner",
+            notes="La prochaine fois, moins de sel.",
+        )
+        response = self.client.get(reverse("recipes:detail", args=[recipe.pk]))
+        self.assertContains(response, "min de repos")
+        self.assertContains(response, "Se congèle")
+        self.assertContains(response, "Juin, Juil., Août")
+        self.assertContains(response, "Poêle, mixeur")
+        self.assertContains(response, "550 kcal")
+        self.assertContains(response, recipe.get_meal_moment_display())
+        self.assertContains(response, recipe.get_cooking_mode_display())
+        self.assertContains(response, "La prochaine fois, moins de sel.")
+
+    def test_detail_page_hides_metadata_sections_when_absent(self):
+        recipe = Recipe.objects.create(title="Riz nature", prep_time_min=10)
+        response = self.client.get(reverse("recipes:detail", args=[recipe.pk]))
+        self.assertNotContains(response, "Infos pratiques")
+        self.assertNotContains(response, "Nutrition (par portion)")
+        self.assertNotContains(response, "Commentaires")
+
+
 class SurpriseMeTests(RecipesTestCase):
     def test_filters_by_prep_time(self):
         quick = Recipe.objects.create(title="Rapide", prep_time_min=10, nutrition_score="light")
