@@ -85,6 +85,21 @@ class RecipeCRUDTests(RecipesTestCase):
         self.assertContains(response, "Poulet rôti")
         self.assertNotContains(response, "Salade")
 
+    def test_list_multi_tag_filter_uses_and_semantics(self):
+        gluten_free = Tag.objects.create(name="sans gluten")
+        veggie_and_gf = Recipe.objects.create(title="Riz aux légumes", prep_time_min=15)
+        veggie_and_gf.tags.add(self.tag, gluten_free)
+        veggie_only = Recipe.objects.create(title="Pâtes végé", prep_time_min=15)
+        veggie_only.tags.add(self.tag)
+
+        # Selecting both tags should require both, not either -- a recipe missing one of the two
+        # restrictions must not show up just because it matches the other.
+        response = self.client.get(
+            reverse("recipes:list"), {"tag": [self.tag.pk, gluten_free.pk]}
+        )
+        self.assertContains(response, "Riz aux légumes")
+        self.assertNotContains(response, "Pâtes végé")
+
     def test_list_filters_by_metadata_enums(self):
         breakfast = Recipe.objects.create(
             title="Gruau",

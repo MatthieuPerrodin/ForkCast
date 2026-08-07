@@ -15,13 +15,13 @@ doesn't yet, add it there first (existing project rule, see `AGENTS.md`).
 
 ## Tier 1 — Wiring/UI only, no new model, no external dependency
 
-1. ~~**Expose the new recipe metadata in the list/filters**~~ — in progress
-   (`meal_moment`/`cooking_mode`/`difficulty`/`estimated_cost` now filterable and shown as pills on
-   `list.html`). First pick, since it directly completes PR #16 rather than starting something new.
-2. **Diet/allergy filters** — mostly already possible via the existing `Tag` system
-   (`#vegetarien` already exists in the demo data). Remaining work, if any: confirm the tag filter
-   dropdown handles multiple simultaneous tags (currently single-select), which is the only gap
-   between "tags exist" and "diet filter as a first-class feature."
+1. ~~**Expose the new recipe metadata in the list/filters**~~ — done (PR #17):
+   `meal_moment`/`cooking_mode`/`difficulty`/`estimated_cost` now filterable and shown as pills on
+   `list.html`.
+2. ~~**Diet/allergy filters**~~ — done: the tag filter on `list.html` is now a checkbox group
+   (`RecipeListView.get_queryset` ANDs each selected tag via its own `.filter(tags__id=...)` call)
+   instead of a single-select dropdown, so selecting "vegetarian" + "gluten-free" together requires
+   both, not either.
 3. **Strengthen rotation/anti-repetition** — `surprise_me` already deprioritizes by
    `last_cooked_on`, but nothing stops the same recipe being picked twice in one planning week.
    Add a check against the current week's `MealSlot`s already assigned that recipe.
