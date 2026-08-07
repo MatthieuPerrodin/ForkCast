@@ -91,6 +91,11 @@
 - After any change to a view/template touching authentication or the recipe CRUD, actually verify
   the critical path (POST login + page rendering, not just the absence of a server startup error)
   before considering the task done.
+- **Adding a link to `templates/base.html`'s nav requires a mobile check of the nav itself**, not
+  just the new page. It grew from 2 links to 6 across 2026-08-06 without anyone re-checking it fit
+  on a phone screen — it didn't, and the fix was only caught by a dedicated responsive pass much
+  later. A `flex-wrap` rule on the nav already handles reasonable growth, but re-verify at 375px
+  after adding another item anyway.
 
 ## History
 

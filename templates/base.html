@@ -19,6 +19,20 @@
                 margin-bottom: 0.5rem;
             }
         }
+
+        /* The nav grew to 6 links across the session (Recettes/Planning/Courses/Rabais/
+           Garde-manger/Déconnexion) -- let it wrap onto multiple lines on narrow screens instead
+           of forcing the whole page wider than the viewport. */
+        @media (max-width: 600px) {
+            nav.container {
+                flex-wrap: wrap;
+                row-gap: 0.5rem;
+            }
+            nav.container ul {
+                flex-wrap: wrap;
+                row-gap: 0.25rem;
+            }
+        }
     </style>
 </head>
 <body>
