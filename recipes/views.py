@@ -1,11 +1,10 @@
 import random
 from datetime import date, timedelta
-from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import F, Sum
+from django.db.models import F
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 from django.views.generic import DetailView, ListView
@@ -16,15 +15,23 @@ from .models import Deal, MealSlot, Recipe, ShoppingList, ShoppingListItem, Stoc
 SURPRISE_CANDIDATE_POOL_SIZE = 5
 
 
-def _recipes_on_deal_ids():
-    """Recipe pks using at least one ingredient with a currently active Deal."""
-    today = date.today()
+def _recipes_on_deal_ids(ids=None):
+    """Recipe pks using at least one ingredient with a currently active Deal. Pass `ids` to scope
+    the check to a specific set of recipes (e.g. only the current page) instead of the whole table.
+    """
+    queryset = Recipe.objects.all()
+    if ids is not None:
+        queryset = queryset.filter(pk__in=ids)
+    active_deal_ingredient_ids = Deal.objects.active().values_list("ingredient_id", flat=True)
     return set(
-        Recipe.objects.filter(
-            recipe_ingredients__ingredient__deals__start_date__lte=today,
-            recipe_ingredients__ingredient__deals__end_date__gte=today,
+        queryset.filter(
+            recipe_ingredients__ingredient_id__in=active_deal_ingredient_ids
         ).values_list("pk", flat=True)
     )
+
+
+def _redirect_next(request, fallback):
+    return redirect(request.POST.get("next") or fallback)
 
 
 class RecipeListView(LoginRequiredMixin, ListView):
@@ -49,7 +56,9 @@ class RecipeListView(LoginRequiredMixin, ListView):
         context["search"] = self.request.GET.get("q", "")
         context["selected_tag"] = self.request.GET.get("tag", "")
         context["nutrition_score_choices"] = Recipe.NutritionScore.choices
-        context["deal_recipe_ids"] = _recipes_on_deal_ids()
+        context["deal_recipe_ids"] = _recipes_on_deal_ids(
+            ids=[r.pk for r in context["recipes"]]
+        )
         return context
 
 
@@ -112,25 +121,8 @@ def mark_cooked(request, pk):
     recipe.last_cooked_on = date.today()
     recipe.save(update_fields=["last_cooked_on"])
     for ri in recipe.recipe_ingredients.all():
-        _deduct_stock_fifo(ri.ingredient_id, ri.unit, ri.quantity)
+        StockItem.objects.deduct_fifo(ri.ingredient_id, ri.unit, ri.quantity)
     return redirect("recipes:detail", pk=pk)
-
-
-def _deduct_stock_fifo(ingredient_id, unit, needed_quantity):
-    """Best-effort: consumes the soonest-expiring lots first (StockItem's default ordering),
-    stops once the need is covered or stock runs out -- doesn't error if stock is short.
-    """
-    remaining = needed_quantity
-    for lot in StockItem.objects.filter(ingredient_id=ingredient_id, unit=unit):
-        if remaining <= 0:
-            break
-        if lot.quantity <= remaining:
-            remaining -= lot.quantity
-            lot.delete()
-        else:
-            lot.quantity -= remaining
-            lot.save(update_fields=["quantity"])
-            remaining = Decimal("0")
 
 
 @login_required
@@ -224,28 +216,19 @@ def set_slot(request):
             "planned_servings": request.POST.get("planned_servings") or recipe.default_servings,
         },
     )
-    return redirect(request.POST.get("next") or "recipes:planning")
+    return _redirect_next(request, "recipes:planning")
 
 
 @login_required
 @require_POST
 def clear_slot(request, pk):
-    slot = get_object_or_404(MealSlot, pk=pk)
-    slot.delete()
-    return redirect(request.POST.get("next") or "recipes:planning")
-
-
-def _latest_shopping_list():
-    return ShoppingList.objects.order_by("-created_at").first()
-
-
-def _get_or_create_shopping_list():
-    return _latest_shopping_list() or ShoppingList.objects.create()
+    get_object_or_404(MealSlot, pk=pk).delete()
+    return _redirect_next(request, "recipes:planning")
 
 
 @login_required
 def shopping_list_view(request):
-    shopping_list = _latest_shopping_list()
+    shopping_list = ShoppingList.objects.current()
     items = shopping_list.items.select_related("ingredient") if shopping_list else []
     return render(
         request,
@@ -257,40 +240,7 @@ def shopping_list_view(request):
 @login_required
 @require_POST
 def generate_shopping_list(request, year, week):
-    shopping_list = _get_or_create_shopping_list()
-    shopping_list.items.filter(source=ShoppingListItem.Source.AUTO).delete()
-
-    days = _week_dates(year, week)
-    slots = MealSlot.objects.filter(date__in=days).select_related("recipe")
-
-    # Aggregate by (ingredient, unit) -- no unit conversion (see docs/06-phase3-tasks.md), and
-    # scale each recipe's quantities by planned_servings / default_servings, same idea as the
-    # per-recipe portion adjuster from Phase 1.
-    totals = {}
-    for slot in slots:
-        ratio = Decimal(slot.planned_servings) / Decimal(slot.recipe.default_servings)
-        for ri in slot.recipe.recipe_ingredients.all():
-            key = (ri.ingredient_id, ri.unit)
-            totals[key] = totals.get(key, Decimal("0")) + ri.quantity * ratio
-
-    for (ingredient_id, unit), quantity in totals.items():
-        # Subtract what's already in the pantry (any location) -- see docs/07-phase4-tasks.md.
-        # Drop the line entirely once stock fully covers the need, rather than showing a
-        # zero/negative quantity.
-        available = StockItem.objects.filter(ingredient_id=ingredient_id, unit=unit).aggregate(
-            total=Sum("quantity")
-        )["total"] or Decimal("0")
-        remaining = quantity - available
-        if remaining <= 0:
-            continue
-        ShoppingListItem.objects.create(
-            shopping_list=shopping_list,
-            ingredient_id=ingredient_id,
-            unit=unit,
-            quantity=remaining,
-            source=ShoppingListItem.Source.AUTO,
-        )
-
+    ShoppingList.generate_for_week(_week_dates(year, week))
     return redirect("recipes:shopping_list")
 
 
@@ -306,9 +256,8 @@ def toggle_shopping_item(request, pk):
 @login_required
 @require_POST
 def add_shopping_item(request):
-    shopping_list = _get_or_create_shopping_list()
     ShoppingListItem.objects.create(
-        shopping_list=shopping_list,
+        shopping_list=ShoppingList.objects.get_or_create_current(),
         free_text_name=request.POST["free_text_name"],
         quantity=request.POST.get("quantity") or None,
         unit=request.POST.get("unit", ""),
@@ -330,11 +279,7 @@ def deals_view(request):
     return render(
         request,
         "recipes/deals.html",
-        {
-            "form": form,
-            "deals": Deal.objects.select_related("ingredient"),
-            "today": date.today(),
-        },
+        {"form": form, "deals": Deal.objects.select_related("ingredient")},
     )
 
 
@@ -376,27 +321,21 @@ def delete_stock_item(request, pk):
     return redirect("recipes:pantry")
 
 
-@login_required
-def add_ingredient_row(request):
-    index = int(request.GET.get("ingredients-TOTAL_FORMS", 0))
-    formset = RecipeIngredientFormSet(prefix="ingredients")
+def _add_formset_row(request, formset_class, prefix, template_name):
+    index = int(request.GET.get(f"{prefix}-TOTAL_FORMS", 0))
+    formset = formset_class(prefix=prefix)
     form = formset.empty_form
     form.prefix = formset.add_prefix(index)
-    return render(
-        request,
-        "recipes/_ingredient_row.html",
-        {"form": form, "next_total": index + 1},
+    return render(request, template_name, {"form": form, "next_total": index + 1})
+
+
+@login_required
+def add_ingredient_row(request):
+    return _add_formset_row(
+        request, RecipeIngredientFormSet, "ingredients", "recipes/_ingredient_row.html"
     )
 
 
 @login_required
 def add_step_row(request):
-    index = int(request.GET.get("steps-TOTAL_FORMS", 0))
-    formset = StepFormSet(prefix="steps")
-    form = formset.empty_form
-    form.prefix = formset.add_prefix(index)
-    return render(
-        request,
-        "recipes/_step_row.html",
-        {"form": form, "next_total": index + 1},
-    )
+    return _add_formset_row(request, StepFormSet, "steps", "recipes/_step_row.html")

@@ -6,7 +6,7 @@
 <h1>{{ recipe.title }}</h1>
 <p>
     <a href="{% url 'recipes:edit' recipe.pk %}" role="button">Modifier</a>
-    <form method="post" action="{% url 'recipes:delete' recipe.pk %}" style="display:inline"
+    <form method="post" action="{% url 'recipes:delete' recipe.pk %}" class="inline-form"
           onsubmit="return confirm('Supprimer définitivement cette recette ?');">
         {% csrf_token %}
         <button type="submit" class="secondary">Supprimer</button>
@@ -19,7 +19,7 @@
 </p>
 <p>
     {% if recipe.last_cooked_on %}Dernière fois cuisinée le {{ recipe.last_cooked_on }}.{% else %}Jamais encore cuisinée.{% endif %}
-    <form method="post" action="{% url 'recipes:mark_cooked' recipe.pk %}" style="display:inline">
+    <form method="post" action="{% url 'recipes:mark_cooked' recipe.pk %}" class="inline-form">
         {% csrf_token %}
         <button type="submit">J'ai cuisiné ça 👍</button>
     </form>
@@ -34,7 +34,7 @@
         <ul>
             {% for ri in recipe.recipe_ingredients.all %}
             {% localize off %}
-            <li><span x-text="(({{ ri.quantity }} * portions / base).toFixed(2) * 1)"></span> {{ ri.unit }} — {{ ri.ingredient.name }}</li>
+            <li><span x-text="Math.round({{ ri.quantity }} * portions / base * 100) / 100"></span> {{ ri.unit }} — {{ ri.ingredient.name }}</li>
             {% endlocalize %}
             {% endfor %}
         </ul>

@@ -9,10 +9,12 @@ label shown in the UI -- the household using this app is French-speaking, only t
 docs are in English.
 """
 
+from collections import defaultdict
 from datetime import date, timedelta
+from decimal import Decimal
 
 from django.db import models
-from django.db.models import F
+from django.db.models import F, Sum
 
 
 class Ingredient(models.Model):
@@ -118,13 +120,67 @@ class MealSlot(models.Model):
         return f"{self.date} {self.get_meal_time_display()} - {self.recipe.title}"
 
 
+class ShoppingListQuerySet(models.QuerySet):
+    def current(self):
+        return self.order_by("-created_at").first()
+
+    def get_or_create_current(self):
+        return self.current() or self.create()
+
+
 class ShoppingList(models.Model):
     """A single active list -- see docs/06-phase3-tasks.md for why this isn't a history of lists."""
 
     created_at = models.DateTimeField(auto_now_add=True)
 
+    objects = ShoppingListQuerySet.as_manager()
+
     def __str__(self):
         return f"Liste du {self.created_at:%Y-%m-%d}"
+
+    @classmethod
+    def generate_for_week(cls, days):
+        """Aggregates RecipeIngredients across the week's MealSlots, scaled by servings, reduced
+        by available stock -- see docs/06-phase3-tasks.md and docs/07-phase4-tasks.md. Overwrites
+        existing auto items on the active list; preserves manual ones and their checked state.
+        """
+        shopping_list = cls.objects.get_or_create_current()
+        shopping_list.items.filter(source=ShoppingListItem.Source.AUTO).delete()
+
+        slots = MealSlot.objects.filter(date__in=days).select_related("recipe").prefetch_related(
+            "recipe__recipe_ingredients"
+        )
+
+        totals = defaultdict(lambda: Decimal("0"))
+        for slot in slots:
+            ratio = Decimal(slot.planned_servings) / Decimal(slot.recipe.default_servings)
+            for ri in slot.recipe.recipe_ingredients.all():
+                totals[(ri.ingredient_id, ri.unit)] += ri.quantity * ratio
+
+        # One grouped query for all the stock on hand, rather than one query per ingredient.
+        stock_by_key = defaultdict(lambda: Decimal("0"))
+        stock_rows = (
+            StockItem.objects.filter(ingredient_id__in={key[0] for key in totals})
+            .values("ingredient_id", "unit")
+            .annotate(total=Sum("quantity"))
+        )
+        for row in stock_rows:
+            stock_by_key[(row["ingredient_id"], row["unit"])] = row["total"]
+
+        for key, quantity in totals.items():
+            remaining = quantity - stock_by_key[key]
+            if remaining <= 0:
+                continue
+            ingredient_id, unit = key
+            ShoppingListItem.objects.create(
+                shopping_list=shopping_list,
+                ingredient_id=ingredient_id,
+                unit=unit,
+                quantity=remaining,
+                source=ShoppingListItem.Source.AUTO,
+            )
+
+        return shopping_list
 
 
 class ShoppingListItem(models.Model):
@@ -153,6 +209,12 @@ class ShoppingListItem(models.Model):
         return self.display_name
 
 
+class DealQuerySet(models.QuerySet):
+    def active(self, on_date=None):
+        on_date = on_date or date.today()
+        return self.filter(start_date__lte=on_date, end_date__gte=on_date)
+
+
 class Deal(models.Model):
     """Manually-flagged discount on an ingredient -- Direction B V1, see requirements.md §5."""
 
@@ -161,6 +223,8 @@ class Deal(models.Model):
     sale_price = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
     start_date = models.DateField()
     end_date = models.DateField()
+
+    objects = DealQuerySet.as_manager()
 
     class Meta:
         ordering = ["-start_date"]
@@ -171,6 +235,25 @@ class Deal(models.Model):
 
     def __str__(self):
         return f"{self.ingredient.name} en rabais ({self.start_date} - {self.end_date})"
+
+
+class StockItemQuerySet(models.QuerySet):
+    def deduct_fifo(self, ingredient_id, unit, needed_quantity):
+        """Best-effort: consumes the soonest-expiring lots first (the model's default ordering
+        already sorts that way), stops once the need is covered or stock runs out -- doesn't
+        error if stock is short.
+        """
+        remaining = needed_quantity
+        for lot in self.filter(ingredient_id=ingredient_id, unit=unit):
+            if remaining <= 0:
+                break
+            if lot.quantity <= remaining:
+                remaining -= lot.quantity
+                lot.delete()
+            else:
+                lot.quantity -= remaining
+                lot.save(update_fields=["quantity"])
+                remaining = Decimal("0")
 
 
 class StockItem(models.Model):
@@ -190,6 +273,8 @@ class StockItem(models.Model):
     location = models.CharField(max_length=10, choices=Location.choices, default=Location.PANTRY)
     expiry_date = models.DateField(null=True, blank=True)
     added_on = models.DateField(auto_now_add=True)
+
+    objects = StockItemQuerySet.as_manager()
 
     class Meta:
         ordering = [F("expiry_date").asc(nulls_last=True), "id"]

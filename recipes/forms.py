@@ -3,6 +3,8 @@ from django.forms import inlineformset_factory
 
 from .models import Deal, Recipe, RecipeIngredient, StockItem, Step, Tag
 
+DATE_INPUT = forms.DateInput(attrs={"type": "date"})
+
 
 class RecipeForm(forms.ModelForm):
     tags = forms.ModelMultipleChoiceField(
@@ -47,8 +49,8 @@ class DealForm(forms.ModelForm):
         widgets = {
             "store": forms.TextInput(attrs={"placeholder": "Magasin (optionnel)"}),
             "sale_price": forms.NumberInput(attrs={"placeholder": "Prix promo (optionnel)"}),
-            "start_date": forms.DateInput(attrs={"type": "date"}),
-            "end_date": forms.DateInput(attrs={"type": "date"}),
+            "start_date": DATE_INPUT,
+            "end_date": DATE_INPUT,
         }
 
 
@@ -59,5 +61,5 @@ class StockItemForm(forms.ModelForm):
         widgets = {
             "quantity": forms.NumberInput(attrs={"placeholder": "Quantité"}),
             "unit": forms.TextInput(attrs={"placeholder": "Unité"}),
-            "expiry_date": forms.DateInput(attrs={"type": "date"}),
+            "expiry_date": DATE_INPUT,
         }
