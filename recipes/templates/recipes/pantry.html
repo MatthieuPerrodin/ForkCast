@@ -2,6 +2,7 @@
 {% block title %}Garde-manger — ForkCast{% endblock %}
 {% block content %}
 <h1>Garde-manger</h1>
+<p><a href="{% url 'recipes:scan' %}" role="button" class="secondary">📷 Scanner un code-barres</a></p>
 
 <form method="post">
     {% csrf_token %}

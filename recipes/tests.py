@@ -1,5 +1,8 @@
+import json
 from datetime import date, timedelta
 from decimal import Decimal
+from unittest.mock import MagicMock, patch
+from urllib.error import URLError
 
 from django.contrib.auth.models import User
 from django.test import TestCase
@@ -681,6 +684,72 @@ class CostEstimateTests(RecipesTestCase):
         )
         response = self.client.get(reverse("recipes:shopping_list"))
         self.assertContains(response, "Coût estimé")
+
+
+class ScanTests(RecipesTestCase):
+    def _mock_off_response(self, payload):
+        mock_response = MagicMock()
+        mock_response.read.return_value = json.dumps(payload).encode()
+        mock_context = MagicMock()
+        mock_context.__enter__.return_value = mock_response
+        return mock_context
+
+    @patch("recipes.views.urllib.request.urlopen")
+    def test_scan_lookup_shows_product_when_found(self, mock_urlopen):
+        mock_urlopen.return_value = self._mock_off_response(
+            {"status": 1, "product": {"product_name": "Nutella", "quantity": "400 g"}}
+        )
+        response = self.client.get(reverse("recipes:scan_lookup"), {"barcode": "3017620422003"})
+        self.assertContains(response, "Nutella")
+        self.assertContains(response, "Ajouter au garde-manger")
+        self.assertContains(response, "Ajouter à la liste de courses")
+
+    @patch("recipes.views.urllib.request.urlopen")
+    def test_scan_lookup_shows_not_found_when_off_has_no_match(self, mock_urlopen):
+        mock_urlopen.return_value = self._mock_off_response({"status": 0})
+        response = self.client.get(reverse("recipes:scan_lookup"), {"barcode": "0000000000000"})
+        self.assertContains(response, "non trouvé")
+
+    @patch("recipes.views.urllib.request.urlopen")
+    def test_scan_lookup_shows_not_found_when_product_has_no_name(self, mock_urlopen):
+        mock_urlopen.return_value = self._mock_off_response(
+            {"status": 1, "product": {"product_name": "", "quantity": "400 g"}}
+        )
+        response = self.client.get(reverse("recipes:scan_lookup"), {"barcode": "123"})
+        self.assertContains(response, "non trouvé")
+
+    @patch("recipes.views.urllib.request.urlopen", side_effect=URLError("boom"))
+    def test_scan_lookup_degrades_gracefully_on_network_error(self, mock_urlopen):
+        response = self.client.get(reverse("recipes:scan_lookup"), {"barcode": "123"})
+        self.assertContains(response, "non trouvé")
+
+    def test_scan_add_to_pantry_creates_ingredient_and_stock_item(self):
+        response = self.client.post(
+            reverse("recipes:scan_add_to_pantry"),
+            {"product_name": "Nutella", "quantity": "400", "unit": "g"},
+        )
+        self.assertRedirects(response, reverse("recipes:pantry"))
+        ingredient = Ingredient.objects.get(name="Nutella")
+        item = StockItem.objects.get(ingredient=ingredient)
+        self.assertEqual(item.quantity, Decimal("400"))
+        self.assertEqual(item.unit, "g")
+
+    def test_scan_add_to_pantry_reuses_existing_ingredient_with_matching_name(self):
+        Ingredient.objects.create(name="Nutella", default_unit="g")
+        self.client.post(
+            reverse("recipes:scan_add_to_pantry"),
+            {"product_name": "Nutella", "quantity": "400", "unit": "g"},
+        )
+        self.assertEqual(Ingredient.objects.filter(name="Nutella").count(), 1)
+
+    def test_scan_add_to_shopping_list_creates_free_text_item(self):
+        response = self.client.post(
+            reverse("recipes:scan_add_to_shopping_list"),
+            {"product_name": "Nutella", "quantity": "400", "unit": "g"},
+        )
+        self.assertRedirects(response, reverse("recipes:shopping_list"))
+        item = ShoppingListItem.objects.get(free_text_name="Nutella")
+        self.assertIsNone(item.ingredient)
 
 
 class DealTests(RecipesTestCase):

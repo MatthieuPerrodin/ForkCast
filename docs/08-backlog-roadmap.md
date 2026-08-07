@@ -50,10 +50,25 @@ doesn't yet, add it there first (existing project rule, see `AGENTS.md`).
 
 ## Tier 3 — External API integration, but a free/simple one
 
-7. **Barcode scan via Open Food Facts** — free public API, no auth required. Needs a barcode
-   scanning UI (a JS library reading the device camera) plus a view that looks up the scanned
-   code and pre-fills a `StockItem`/`ShoppingListItem` form. The scanning UI is the main new
-   surface; the API call itself is a single unauthenticated GET.
+7. ~~**Barcode scan via Open Food Facts**~~ — done, in a deliberately split-off first stage:
+   `/scan/` takes a **typed** barcode (no camera yet — see below), looks it up against Open Food
+   Facts (stdlib `urllib.request`, no new dependency for one unauthenticated GET), and offers
+   "add to pantry" / "add to shopping list" pre-filled with the product name and, when parseable, a
+   quantity. Adding to the pantry does `Ingredient.objects.get_or_create(name=product_name, ...)`
+   rather than requiring the user to match an existing `Ingredient` first — a scanned name won't
+   usually match one exactly, and forcing a match would defeat the "quick scan and done" point.
+   **Deliberately deferred, not forgotten**: (a) the actual camera-based live scanning UI (a JS
+   barcode-reading library) — the typed-entry version proves out the OFF integration and pantry/
+   list plumbing first, camera capture is an additive UI layer on top, not a prerequisite; (b)
+   pulling macros/photo from Open Food Facts, which the original idea mentioned ("great for your
+   whey") — `Ingredient` has no macro/photo fields today (`Recipe` does, but per-serving, a
+   different concern), and adding them is a real modeling decision to make deliberately, not a side
+   effect of wiring up a barcode lookup.
+7b. **Camera-based barcode scanning** (fast-follow to #7, not started) — replace/augment the typed
+   barcode field on `/scan/` with a live camera reader (e.g. `html5-qrcode` via CDN, matching the
+   no-build-step approach already used for htmx/Alpine). All the lookup/pantry/list plumbing from
+   #7 stays as-is; this only changes how the barcode gets typed in. Needs real-device testing
+   (camera permissions, HTTPS requirement) that a Playwright pass can't fully substitute for.
 8. **Recipe import from a URL** — most recipe sites embed `schema.org/Recipe` structured data
    (JSON-LD), so a first version can be a scraper that looks for that block rather than parsing
    arbitrary HTML — meaningfully simpler than a general-purpose scraper, and doesn't need an LLM.

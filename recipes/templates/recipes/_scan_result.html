@@ -1,0 +1,31 @@
+{% load l10n %}
+{% if product_name %}
+<article class="recipe-card">
+    <h3>{{ product_name }}</h3>
+    {% if quantity %}
+    <p class="meta">{% localize off %}{{ quantity }}{% endlocalize %} {{ unit }} (repris d'Open Food Facts)</p>
+    {% endif %}
+    <div class="button-row">
+        <form method="post" action="{% url 'recipes:scan_add_to_pantry' %}" class="inline-form">
+            {% csrf_token %}
+            <input type="hidden" name="product_name" value="{{ product_name }}">
+            <input type="hidden" name="quantity" value="{% if quantity %}{% localize off %}{{ quantity }}{% endlocalize %}{% endif %}">
+            <input type="hidden" name="unit" value="{{ unit }}">
+            <button type="submit">Ajouter au garde-manger</button>
+        </form>
+        <form method="post" action="{% url 'recipes:scan_add_to_shopping_list' %}" class="inline-form">
+            {% csrf_token %}
+            <input type="hidden" name="product_name" value="{{ product_name }}">
+            <input type="hidden" name="quantity" value="{% if quantity %}{% localize off %}{{ quantity }}{% endlocalize %}{% endif %}">
+            <input type="hidden" name="unit" value="{{ unit }}">
+            <button type="submit" class="secondary">Ajouter à la liste de courses</button>
+        </form>
+    </div>
+</article>
+{% else %}
+<p role="alert">
+    Produit non trouvé sur Open Food Facts. Ajoute-le manuellement depuis le
+    <a href="{% url 'recipes:pantry' %}">garde-manger</a> ou la
+    <a href="{% url 'recipes:shopping_list' %}">liste de courses</a>.
+</p>
+{% endif %}

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Scanner un produit — ForkCast{% endblock %}
+{% block content %}
+<a href="{% url 'recipes:pantry' %}">&larr; Retour au garde-manger</a>
+<h1>Scanner un produit</h1>
+<p>
+    Entre le code-barres du produit (Open Food Facts) pour préremplir son nom et sa quantité
+    avant de l'ajouter au garde-manger ou à la liste de courses.
+</p>
+
+<form hx-get="{% url 'recipes:scan_lookup' %}" hx-target="#scan-result" hx-swap="innerHTML">
+    <fieldset role="group">
+        <input
+            type="text" name="barcode" inputmode="numeric" autofocus required
+            placeholder="Code-barres (ex : 3017620422003)"
+        >
+        <button type="submit">Chercher</button>
+    </fieldset>
+</form>
+
+<div id="scan-result"></div>
+{% endblock %}
