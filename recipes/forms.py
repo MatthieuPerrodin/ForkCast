@@ -45,6 +45,8 @@ class DealForm(forms.ModelForm):
         model = Deal
         fields = ["ingredient", "store", "sale_price", "start_date", "end_date"]
         widgets = {
+            "store": forms.TextInput(attrs={"placeholder": "Magasin (optionnel)"}),
+            "sale_price": forms.NumberInput(attrs={"placeholder": "Prix promo (optionnel)"}),
             "start_date": forms.DateInput(attrs={"type": "date"}),
             "end_date": forms.DateInput(attrs={"type": "date"}),
         }
@@ -54,4 +56,8 @@ class StockItemForm(forms.ModelForm):
     class Meta:
         model = StockItem
         fields = ["ingredient", "quantity", "unit", "location", "expiry_date"]
-        widgets = {"expiry_date": forms.DateInput(attrs={"type": "date"})}
+        widgets = {
+            "quantity": forms.NumberInput(attrs={"placeholder": "Quantité"}),
+            "unit": forms.TextInput(attrs={"placeholder": "Unité"}),
+            "expiry_date": forms.DateInput(attrs={"type": "date"}),
+        }
