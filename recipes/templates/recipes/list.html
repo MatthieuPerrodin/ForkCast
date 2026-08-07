@@ -73,6 +73,20 @@
     </fieldset>
 </form>
 
+<form method="get" action="{% url 'recipes:leftover_search' %}">
+    <fieldset role="group">
+        <select name="ingredient" required>
+            <option value="">J'ai un reste de...</option>
+            {% for ingredient in ingredients %}
+            <option value="{{ ingredient.id }}">{{ ingredient.name }}</option>
+            {% endfor %}
+        </select>
+        <input type="number" name="quantity" step="0.01" placeholder="Quantité (optionnel)">
+        <input type="text" name="unit" placeholder="Unité (ex : g)">
+        <button type="submit" class="secondary">Chercher</button>
+    </fieldset>
+</form>
+
 {% if recipes %}
 <div class="grid">
     {% for recipe in recipes %}
