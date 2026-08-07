@@ -47,8 +47,20 @@ erDiagram
 | photo | image/url | optional |
 | prep_time_min | integer | used by the "quick" filter |
 | cook_time_min | integer | optional |
+| rest_time_min | integer | optional — dough resting, marinating, chilling... separate from active cook time |
 | default_servings | integer | basis for quantity adjustment |
 | nutrition_score | enum (light/balanced/hearty) or similar | intentionally simple, no calorie calculation (see backlog idea) |
+| calories_kcal | integer, optional | per serving |
+| protein_g / carbs_g / fat_g | decimal, optional | per serving — added for PPL/fitness routine tracking, separate concern from `nutrition_score` above (see §5) |
+| fridge_shelf_life_days | integer, optional | how many days it keeps in the fridge once cooked |
+| is_freezable | boolean | |
+| seasonality_months | text, optional | comma-separated month numbers (e.g. "6,7,8") — see §5 for why not a proper array field |
+| equipment_needed | text, optional | free text (e.g. "mixer, food processor") — see §5 for why not a structured list |
+| estimated_cost | enum (low/medium/high), optional | |
+| difficulty | enum (easy/medium/hard), optional | |
+| cooking_mode | enum (oven/stovetop/no_cook/bbq), optional | |
+| meal_moment | enum (breakfast/lunch/dinner/snack), optional | |
+| notes | text, optional | free-form personal remarks (e.g. "next time, less salt") — distinct from `description`, which introduces the recipe rather than accumulating notes over time |
 | last_cooked_on | date | nullable — feeds the suggestion's anti-repetition logic |
 | created_at | datetime | |
 
@@ -76,6 +88,7 @@ erDiagram
 | ingredient_id | FK → Ingredient | |
 | quantity | decimal | for `default_servings` |
 | unit | text | may differ from the ingredient's default unit (conversion — see §5 open questions) |
+| state | text, optional | free text prep state at the ingredient level (e.g. "chopped", "melted", "room temperature") — distinct from `cooking_mode`/`meal_moment` above, which describe the recipe as a whole |
 
 ### `Tag` / recipe-tag relationship
 | Field | Type | Notes |
@@ -137,6 +150,33 @@ erDiagram
   to decide between automatic and manual confirmation once that phase is actually tackled.
 - **Nutrition score**: intentionally left as a simple enum (light/balanced/hearty) rather than a
   real macro calculation — to refine only if the need shows up in actual use.
+- **Macros alongside the nutrition score, not replacing it** (added 2026-08-06): `nutrition_score`
+  stays a quick, low-friction qualitative tag for everyday meal suggestions; `calories_kcal`/
+  `protein_g`/`carbs_g`/`fat_g` are a separate, optional, more precise set of fields for recipes
+  where exact macros actually matter (e.g. tracking a lifting/PPL routine). Both coexist rather
+  than one replacing the other — different use cases, different precision needs.
+- **`seasonality_months` as a comma-separated string, not a proper array/M2M**: SQLite (used
+  locally) has no native array type, and a full M2M table for 12 fixed values is more structure
+  than the feature needs. A `CharField` storing digits like `"6,7,8"` is simple to write/read from
+  both SQLite and Postgres and easy to migrate to something richer later if it ever needs to be
+  queried efficiently (e.g. "find all recipes in season this month").
+- **`equipment_needed` as free text, not a structured equipment table**: same reasoning as
+  `Ingredient.default_unit` elsewhere in this model — a full reference table would only pay off if
+  the app needed to filter/aggregate by equipment, which isn't a requirement today.
+- **"Style" tags (quick/meal-prep) reuse the existing `Tag` M2M, no new field**: the requirement
+  that motivated this ("classification tags for style") is already served by tags like `#rapide` —
+  adding a second, overlapping classification mechanism would just create two ways to say the same
+  thing. `estimated_cost` and `difficulty` get dedicated enum fields instead of tags because they're
+  closed, mutually-exclusive value sets (more like `nutrition_score` than like free-form tags).
+- **`cooking_mode` and `meal_moment` are single-select enums on `Recipe`, not M2M**: a recipe could
+  arguably fit more than one (e.g. suitable for lunch or dinner), but `nutrition_score` already
+  established the "one simple enum per recipe" pattern for this kind of classification, and neither
+  field is required — leave both blank rather than force a choice when it doesn't apply.
+- **`RecipeIngredient.state` is free text, not an enum**: prep states ("chopped", "melted", "room
+  temperature", "thinly sliced"...) are far more open-ended per-ingredient than the recipe-level
+  enums above; an enum would either need constant editing or a large catch-all list. Revisit only
+  if the "meal prep" backlog idea (merging shared prep steps across recipes) needs to match on
+  state programmatically rather than just display it.
 
 ## 6. Next steps
 
