@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Reste : {{ ingredient.name }} — ForkCast{% endblock %}
+{% block content %}
+<a href="{% url 'recipes:list' %}">&larr; Retour aux recettes</a>
+<h1>Avec {{ ingredient.name }}{% if available_quantity %} ({{ available_quantity }} {{ unit }}){% endif %}</h1>
+
+{% if matches %}
+<div class="grid">
+    {% for recipe, feasible_servings in matches %}
+    <article class="recipe-card">
+        <h3><a href="{% url 'recipes:detail' recipe.pk %}">{{ recipe.title }}</a></h3>
+        <p class="meta">
+            <span class="score-dot {{ recipe.nutrition_score }}"></span>{{ recipe.prep_time_min }} min · {{ recipe.get_nutrition_score_display }}
+        </p>
+        {% if feasible_servings %}<p>Assez pour environ {{ feasible_servings }} portion{{ feasible_servings|pluralize }}.</p>{% endif %}
+    </article>
+    {% endfor %}
+</div>
+{% else %}
+<p>
+    Aucune recette ne correspond.
+    {% if available_quantity %}Essaie sans préciser de quantité pour voir toutes les recettes utilisant cet ingrédient.{% endif %}
+</p>
+{% endif %}
+{% endblock %}

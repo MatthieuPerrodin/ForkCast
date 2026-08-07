@@ -321,6 +321,55 @@ class ExpiryNotificationTests(RecipesTestCase):
         self.assertNotContains(response, "cuisiner :")
 
 
+class LeftoverSearchTests(RecipesTestCase):
+    def test_lists_recipes_using_the_ingredient_without_a_quantity(self):
+        matching = Recipe.objects.create(title="Riz sauté", prep_time_min=10, default_servings=4)
+        RecipeIngredient.objects.create(
+            recipe=matching, ingredient=self.ingredient, quantity=400, unit="g"
+        )
+        other_ingredient = Ingredient.objects.create(name="Pâtes", default_unit="g")
+        other = Recipe.objects.create(title="Pâtes simples", prep_time_min=10)
+        RecipeIngredient.objects.create(recipe=other, ingredient=other_ingredient, quantity=200, unit="g")
+
+        response = self.client.get(reverse("recipes:leftover_search"), {"ingredient": self.ingredient.pk})
+        self.assertContains(response, "Riz sauté")
+        self.assertNotContains(response, "Pâtes simples")
+
+    def test_excludes_recipe_when_leftover_cannot_cover_one_serving(self):
+        recipe = Recipe.objects.create(title="Riz sauté", prep_time_min=10, default_servings=4)
+        RecipeIngredient.objects.create(
+            recipe=recipe, ingredient=self.ingredient, quantity=400, unit="g"
+        )
+        response = self.client.get(
+            reverse("recipes:leftover_search"),
+            {"ingredient": self.ingredient.pk, "quantity": "50", "unit": "g"},
+        )
+        self.assertNotContains(response, "Riz sauté")
+
+    def test_includes_recipe_with_feasible_servings_count_when_leftover_is_enough(self):
+        recipe = Recipe.objects.create(title="Riz sauté", prep_time_min=10, default_servings=4)
+        RecipeIngredient.objects.create(
+            recipe=recipe, ingredient=self.ingredient, quantity=400, unit="g"
+        )
+        response = self.client.get(
+            reverse("recipes:leftover_search"),
+            {"ingredient": self.ingredient.pk, "quantity": "150", "unit": "g"},
+        )
+        self.assertContains(response, "Riz sauté")
+        self.assertContains(response, "1 portion")
+
+    def test_unit_mismatch_ignores_quantity_and_still_shows_recipe(self):
+        recipe = Recipe.objects.create(title="Riz sauté", prep_time_min=10, default_servings=4)
+        RecipeIngredient.objects.create(
+            recipe=recipe, ingredient=self.ingredient, quantity=400, unit="g"
+        )
+        response = self.client.get(
+            reverse("recipes:leftover_search"),
+            {"ingredient": self.ingredient.pk, "quantity": "1", "unit": "tasse"},
+        )
+        self.assertContains(response, "Riz sauté")
+
+
 class SurpriseMeTests(RecipesTestCase):
     def test_filters_by_prep_time(self):
         quick = Recipe.objects.create(title="Rapide", prep_time_min=10, nutrition_score="light")

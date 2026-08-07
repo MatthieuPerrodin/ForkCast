@@ -1,5 +1,6 @@
 import random
 from datetime import date, timedelta
+from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -10,7 +11,17 @@ from django.views.decorators.http import require_POST
 from django.views.generic import DetailView, ListView
 
 from .forms import DealForm, RecipeForm, RecipeIngredientFormSet, StepFormSet, StockItemForm
-from .models import Deal, MealSlot, Recipe, ShoppingList, ShoppingListItem, StockItem, Tag
+from .models import (
+    Deal,
+    Ingredient,
+    MealSlot,
+    Recipe,
+    RecipeIngredient,
+    ShoppingList,
+    ShoppingListItem,
+    StockItem,
+    Tag,
+)
 
 SURPRISE_CANDIDATE_POOL_SIZE = 5
 
@@ -83,6 +94,7 @@ class RecipeListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["tags"] = Tag.objects.all()
+        context["ingredients"] = Ingredient.objects.all()
         context["search"] = self.request.GET.get("q", "")
         context["selected_tags"] = self.request.GET.getlist("tag")
         context["nutrition_score_choices"] = Recipe.NutritionScore.choices
@@ -196,6 +208,56 @@ def surprise_me(request):
 
     recipe = random.choice(candidates)
     return redirect("recipes:detail", pk=recipe.pk)
+
+
+@login_required
+def leftover_search(request):
+    """Direction A, targeted variant: "I have X grams of Y left, what can I make with it?" --
+    unlike surprise_me this doesn't pick one answer, it lists every recipe using the ingredient so
+    the user chooses. Quantity/unit are optional: given and matching the recipe's own unit, recipes
+    the leftover can't even cover one serving of are dropped; otherwise (no quantity, or a unit
+    that can't be compared) every recipe using the ingredient is shown, consistent with the
+    "approximate match is acceptable" call already made for unit conversion elsewhere (see
+    docs/02-data-model.md §5).
+    """
+    ingredient = get_object_or_404(Ingredient, pk=request.GET.get("ingredient"))
+    unit = request.GET.get("unit", "").strip()
+    available_quantity = None
+    if request.GET.get("quantity"):
+        try:
+            available_quantity = Decimal(request.GET["quantity"])
+        except InvalidOperation:
+            available_quantity = None
+
+    matches = []
+    seen_recipe_ids = set()
+    recipe_ingredients = (
+        RecipeIngredient.objects.filter(ingredient=ingredient)
+        .select_related("recipe")
+        .order_by("recipe__prep_time_min")
+    )
+    for ri in recipe_ingredients:
+        if ri.recipe_id in seen_recipe_ids or not ri.recipe.default_servings:
+            continue
+        feasible_servings = None
+        if available_quantity is not None and unit and unit == ri.unit:
+            per_serving = ri.quantity / ri.recipe.default_servings
+            feasible_servings = int(available_quantity / per_serving) if per_serving else 0
+            if feasible_servings < 1:
+                continue
+        seen_recipe_ids.add(ri.recipe_id)
+        matches.append((ri.recipe, feasible_servings))
+
+    return render(
+        request,
+        "recipes/leftover_results.html",
+        {
+            "ingredient": ingredient,
+            "matches": matches,
+            "available_quantity": available_quantity,
+            "unit": unit,
+        },
+    )
 
 
 def _week_dates(year, week):

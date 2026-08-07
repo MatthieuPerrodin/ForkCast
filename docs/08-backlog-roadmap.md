@@ -35,9 +35,11 @@ doesn't yet, add it there first (existing project rule, see `AGENTS.md`).
    one recipe using that ingredient when one exists (`_expiring_stock_suggestions()` in
    `views.py`). Placed on the recipe list rather than the pantry page since that's where the user
    is actually deciding what to cook (Direction A of the bidirectional loop).
-5. **Leftover management** — "I have X grams of Y, what can I make?": a targeted search filtering
-   `Recipe` by `recipe_ingredients__ingredient` and comparing quantity, closely related to #4's
-   query shape and to the existing V2 pantry-aware suggestion logic.
+5. ~~**Leftover management**~~ — done: `/leftover/` lists every recipe using a chosen ingredient
+   (`leftover_search` in `views.py`), and when a matching quantity+unit is given, drops recipes the
+   leftover can't cover even one serving of and shows the feasible serving count for the rest.
+   Entry point is a small secondary form on the recipe list (deliberately less prominent than the
+   "Surprends-moi" card — this is a targeted variant of that feature, not the headline one).
 6. **Cost estimate for groceries** — `Recipe.estimated_cost` exists but is qualitative; a real
    shopping-list total needs a price on `Ingredient` or `Deal` to sum against. Needs one new field
    plus a total row on the shopping list template — small, but touches pricing data that doesn't
