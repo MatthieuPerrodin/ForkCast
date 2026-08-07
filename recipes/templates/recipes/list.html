@@ -22,12 +22,36 @@
 </article>
 
 <form method="get" role="search">
+    <input type="search" name="q" placeholder="Rechercher une recette..." value="{{ search }}">
     <fieldset role="group">
-        <input type="search" name="q" placeholder="Rechercher une recette..." value="{{ search }}">
         <select name="tag">
             <option value="">Tous les tags</option>
             {% for tag in tags %}
             <option value="{{ tag.id }}" {% if selected_tag == tag.id|stringformat:"s" %}selected{% endif %}>{{ tag.name }}</option>
+            {% endfor %}
+        </select>
+        <select name="meal_moment">
+            <option value="">Tout moment</option>
+            {% for value, label in meal_moment_choices %}
+            <option value="{{ value }}" {% if selected_meal_moment == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+        <select name="cooking_mode">
+            <option value="">Tout mode de cuisson</option>
+            {% for value, label in cooking_mode_choices %}
+            <option value="{{ value }}" {% if selected_cooking_mode == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+        <select name="difficulty">
+            <option value="">Toute difficulté</option>
+            {% for value, label in difficulty_choices %}
+            <option value="{{ value }}" {% if selected_difficulty == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+        <select name="estimated_cost">
+            <option value="">Tout coût</option>
+            {% for value, label in estimated_cost_choices %}
+            <option value="{{ value }}" {% if selected_estimated_cost == value %}selected{% endif %}>{{ label }}</option>
             {% endfor %}
         </select>
         <button type="submit">Filtrer</button>
@@ -42,6 +66,14 @@
         <p class="meta">
             <span class="score-dot {{ recipe.nutrition_score }}"></span>{{ recipe.prep_time_min }} min · {{ recipe.get_nutrition_score_display }}
         </p>
+        {% if recipe.meal_moment or recipe.cooking_mode or recipe.difficulty or recipe.estimated_cost %}
+        <div class="tag-row">
+            {% if recipe.meal_moment %}<span class="pill">{{ recipe.get_meal_moment_display }}</span>{% endif %}
+            {% if recipe.cooking_mode %}<span class="pill">{{ recipe.get_cooking_mode_display }}</span>{% endif %}
+            {% if recipe.difficulty %}<span class="pill">{{ recipe.get_difficulty_display }}</span>{% endif %}
+            {% if recipe.estimated_cost %}<span class="pill">{{ recipe.get_estimated_cost_display }}</span>{% endif %}
+        </div>
+        {% endif %}
         <div class="tag-row">
             {% for tag in recipe.tags.all %}<span class="pill">#{{ tag.name }}</span>{% endfor %}
             {% if recipe.pk in deal_recipe_ids %}<span class="pill deal">🏷 rabais</span>{% endif %}

@@ -85,6 +85,39 @@ class RecipeCRUDTests(RecipesTestCase):
         self.assertContains(response, "Poulet rôti")
         self.assertNotContains(response, "Salade")
 
+    def test_list_filters_by_metadata_enums(self):
+        breakfast = Recipe.objects.create(
+            title="Gruau",
+            prep_time_min=5,
+            meal_moment="breakfast",
+            cooking_mode="no_cook",
+            difficulty="easy",
+            estimated_cost="low",
+        )
+        dinner = Recipe.objects.create(
+            title="Rôti", prep_time_min=90, meal_moment="dinner", difficulty="hard"
+        )
+
+        response = self.client.get(reverse("recipes:list"), {"meal_moment": "breakfast"})
+        self.assertContains(response, "Gruau")
+        self.assertNotContains(response, "Rôti")
+
+        response = self.client.get(reverse("recipes:list"), {"difficulty": "hard"})
+        self.assertContains(response, "Rôti")
+        self.assertNotContains(response, "Gruau")
+
+        response = self.client.get(reverse("recipes:list"), {"cooking_mode": "no_cook"})
+        self.assertContains(response, "Gruau")
+        self.assertNotContains(response, "Rôti")
+
+        response = self.client.get(reverse("recipes:list"), {"estimated_cost": "low"})
+        self.assertContains(response, "Gruau")
+        self.assertNotContains(response, "Rôti")
+
+        response = self.client.get(reverse("recipes:list"))
+        self.assertContains(response, breakfast.get_meal_moment_display())
+        self.assertContains(response, dinner.get_difficulty_display())
+
     def test_edit_recipe_updates_existing_ingredient_row(self):
         recipe = Recipe.objects.create(title="Riz", prep_time_min=10, default_servings=2)
         ri = RecipeIngredient.objects.create(

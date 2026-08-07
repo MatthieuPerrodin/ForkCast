@@ -40,6 +40,9 @@ class RecipeListView(LoginRequiredMixin, ListView):
     context_object_name = "recipes"
     paginate_by = 20
 
+    #  GET param name -> Recipe field it filters on exactly (enum filters, all optional).
+    ENUM_FILTERS = ["meal_moment", "cooking_mode", "difficulty", "estimated_cost"]
+
     def get_queryset(self):
         queryset = Recipe.objects.prefetch_related("tags")
         search = self.request.GET.get("q")
@@ -48,6 +51,10 @@ class RecipeListView(LoginRequiredMixin, ListView):
         tag_id = self.request.GET.get("tag")
         if tag_id:
             queryset = queryset.filter(tags__id=tag_id)
+        for field in self.ENUM_FILTERS:
+            value = self.request.GET.get(field)
+            if value:
+                queryset = queryset.filter(**{field: value})
         return queryset
 
     def get_context_data(self, **kwargs):
@@ -56,6 +63,12 @@ class RecipeListView(LoginRequiredMixin, ListView):
         context["search"] = self.request.GET.get("q", "")
         context["selected_tag"] = self.request.GET.get("tag", "")
         context["nutrition_score_choices"] = Recipe.NutritionScore.choices
+        context["meal_moment_choices"] = Recipe.MealMoment.choices
+        context["cooking_mode_choices"] = Recipe.CookingMode.choices
+        context["difficulty_choices"] = Recipe.Difficulty.choices
+        context["estimated_cost_choices"] = Recipe.Cost.choices
+        for field in self.ENUM_FILTERS:
+            context[f"selected_{field}"] = self.request.GET.get(field, "")
         context["deal_recipe_ids"] = _recipes_on_deal_ids(
             ids=[r.pk for r in context["recipes"]]
         )
