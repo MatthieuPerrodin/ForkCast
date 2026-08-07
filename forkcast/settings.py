@@ -125,6 +125,15 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 SUPABASE_STORAGE_BUCKET = os.environ.get("SUPABASE_STORAGE_BUCKET")
 
+# Manifest storage requires collectstatic to have run first (it hashes filenames and needs the
+# resulting staticfiles.json to resolve {% static %} tags) -- fine in prod where collectstatic is
+# a deploy step, but not for local runserver/tests. Plain storage needs no such step.
+STATICFILES_BACKEND = (
+    "django.contrib.staticfiles.storage.StaticFilesStorage"
+    if DEBUG
+    else "whitenoise.storage.CompressedManifestStaticFilesStorage"
+)
+
 if SUPABASE_STORAGE_BUCKET:
     SUPABASE_PROJECT_REF = os.environ["SUPABASE_PROJECT_REF"]
     STORAGES = {
@@ -150,7 +159,7 @@ if SUPABASE_STORAGE_BUCKET:
             },
         },
         "staticfiles": {
-            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+            "BACKEND": STATICFILES_BACKEND,
         },
     }
 else:
@@ -159,7 +168,7 @@ else:
             "BACKEND": "django.core.files.storage.FileSystemStorage",
         },
         "staticfiles": {
-            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+            "BACKEND": STATICFILES_BACKEND,
         },
     }
 

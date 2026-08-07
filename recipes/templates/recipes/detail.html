@@ -4,44 +4,54 @@
 {% block content %}
 <a href="{% url 'recipes:list' %}">&larr; Retour aux recettes</a>
 <h1>{{ recipe.title }}</h1>
-<p>
+<div class="button-row">
     <a href="{% url 'recipes:edit' recipe.pk %}" role="button">Modifier</a>
     <form method="post" action="{% url 'recipes:delete' recipe.pk %}" class="inline-form"
           onsubmit="return confirm('Supprimer définitivement cette recette ?');">
         {% csrf_token %}
         <button type="submit" class="secondary">Supprimer</button>
     </form>
-</p>
-<p>
-    {{ recipe.prep_time_min }} min de préparation
+</div>
+<p class="meta">
+    <span class="score-dot {{ recipe.nutrition_score }}"></span>{{ recipe.prep_time_min }} min de préparation
     {% if recipe.cook_time_min %}· {{ recipe.cook_time_min }} min de cuisson{% endif %}
     · {{ recipe.get_nutrition_score_display }}
 </p>
-<p>
-    {% if recipe.last_cooked_on %}Dernière fois cuisinée le {{ recipe.last_cooked_on }}.{% else %}Jamais encore cuisinée.{% endif %}
+<div class="button-row">
+    <span>{% if recipe.last_cooked_on %}Dernière fois cuisinée le {{ recipe.last_cooked_on }}.{% else %}Jamais encore cuisinée.{% endif %}</span>
     <form method="post" action="{% url 'recipes:mark_cooked' recipe.pk %}" class="inline-form">
         {% csrf_token %}
         <button type="submit">J'ai cuisiné ça 👍</button>
     </form>
-</p>
+</div>
 {% if recipe.photo %}<img src="{{ recipe.photo.url }}" alt="{{ recipe.title }}">{% endif %}
 {% if recipe.description %}<p>{{ recipe.description }}</p>{% endif %}
 
 <div class="grid" x-data="{ base: {{ recipe.default_servings }}, portions: {{ recipe.default_servings }} }">
     <div>
         <h2>Ingrédients</h2>
-        <label>Portions : <input type="number" min="1" x-model.number="portions" style="width: 5rem; display: inline-block;"></label>
-        <ul>
+        <p>
+            Portions
+            <span class="stepper">
+                <button type="button" @click="portions = Math.max(1, portions - 1)">−</button>
+                <span class="count tabular" x-text="portions"></span>
+                <button type="button" @click="portions = portions + 1">+</button>
+            </span>
+        </p>
+        <ul class="ingredient-list">
             {% for ri in recipe.recipe_ingredients.all %}
             {% localize off %}
-            <li><span x-text="Math.round({{ ri.quantity }} * portions / base * 100) / 100"></span> {{ ri.unit }} — {{ ri.ingredient.name }}</li>
+            <li>
+                <span>{{ ri.ingredient.name }}</span>
+                <span class="qty tabular"><span x-text="Math.round({{ ri.quantity }} * portions / base * 100) / 100"></span> {{ ri.unit }}</span>
+            </li>
             {% endlocalize %}
             {% endfor %}
         </ul>
     </div>
     <div>
         <h2>Étapes</h2>
-        <ol>
+        <ol class="step-list">
             {% for step in recipe.steps.all %}
             <li>{{ step.description }}</li>
             {% endfor %}

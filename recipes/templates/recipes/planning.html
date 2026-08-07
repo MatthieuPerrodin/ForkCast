@@ -3,16 +3,10 @@
 {% block content %}
 <h1>Planning des repas</h1>
 
-<nav>
-    <ul>
-        <li><a href="{% url 'recipes:planning_week' prev_year prev_week %}">&larr; Semaine précédente</a></li>
-    </ul>
-    <ul>
-        <li>Semaine du {{ week_start }} au {{ week_end }}</li>
-    </ul>
-    <ul>
-        <li><a href="{% url 'recipes:planning_week' next_year next_week %}">Semaine suivante &rarr;</a></li>
-    </ul>
+<nav class="plan-nav-row">
+    <a href="{% url 'recipes:planning_week' prev_year prev_week %}">&larr; Semaine précédente</a>
+    <strong>Semaine du {{ week_start }} au {{ week_end }}</strong>
+    <a href="{% url 'recipes:planning_week' next_year next_week %}">Semaine suivante &rarr;</a>
 </nav>
 
 <form method="post" action="{% url 'recipes:generate_shopping_list' year week %}">
@@ -21,14 +15,14 @@
 </form>
 
 {% for day in grid %}
-<article>
+<article class="plan-day">
     <h3>{{ day.date|date:"l j F" }}</h3>
     <div class="grid">
         {% for meal_time, label, slot in day.slots %}
-        <div>
-            <strong>{{ label }}</strong>
+        <div class="slot">
+            <span class="slot-label">{{ label }}</span>
             {% if slot %}
-            <p>
+            <p style="margin-bottom: 0.5rem;">
                 <a href="{% url 'recipes:detail' slot.recipe.pk %}">{{ slot.recipe.title }}</a>
                 ({{ slot.planned_servings }} portions)
             </p>

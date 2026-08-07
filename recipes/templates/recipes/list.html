@@ -4,8 +4,8 @@
 <h1>Mes recettes</h1>
 <p><a href="{% url 'recipes:create' %}" role="button">+ Nouvelle recette</a></p>
 
-<article>
-    <h2>Surprends-moi 🎲</h2>
+<article class="surprise-card">
+    <h2>Surprends-moi</h2>
     <p>Une suggestion selon le temps dont tu disposes et l'envie du moment.</p>
     <form method="get" action="{% url 'recipes:surprise_me' %}">
         <fieldset role="group">
@@ -37,14 +37,15 @@
 {% if recipes %}
 <div class="grid">
     {% for recipe in recipes %}
-    <article>
+    <article class="recipe-card">
         <h3><a href="{% url 'recipes:detail' recipe.pk %}">{{ recipe.title }}</a></h3>
-        <p>
-            {{ recipe.prep_time_min }} min de préparation
-            · {{ recipe.get_nutrition_score_display }}
-            {% if recipe.pk in deal_recipe_ids %}<mark>🏷️ ingrédient en rabais</mark>{% endif %}
+        <p class="meta">
+            <span class="score-dot {{ recipe.nutrition_score }}"></span>{{ recipe.prep_time_min }} min · {{ recipe.get_nutrition_score_display }}
         </p>
-        {% for tag in recipe.tags.all %}<span>#{{ tag.name }}</span> {% endfor %}
+        <div class="tag-row">
+            {% for tag in recipe.tags.all %}<span class="pill">#{{ tag.name }}</span>{% endfor %}
+            {% if recipe.pk in deal_recipe_ids %}<span class="pill deal">🏷 rabais</span>{% endif %}
+        </div>
     </article>
     {% endfor %}
 </div>
