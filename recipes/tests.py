@@ -279,6 +279,48 @@ class RecipeMetadataTests(RecipesTestCase):
         self.assertNotContains(response, "Commentaires")
 
 
+class ExpiryNotificationTests(RecipesTestCase):
+    def test_expiring_item_shown_with_recipe_suggestion(self):
+        recipe = Recipe.objects.create(title="Riz sauté", prep_time_min=10)
+        RecipeIngredient.objects.create(
+            recipe=recipe, ingredient=self.ingredient, quantity=100, unit="g"
+        )
+        StockItem.objects.create(
+            ingredient=self.ingredient, quantity=200, unit="g",
+            expiry_date=date.today() + timedelta(days=2),
+        )
+
+        response = self.client.get(reverse("recipes:list"))
+        self.assertContains(response, "Ça expire bientôt")
+        self.assertContains(response, self.ingredient.name)
+        self.assertContains(response, "cuisiner : Riz sauté")
+
+    def test_item_not_expiring_soon_is_not_shown(self):
+        StockItem.objects.create(
+            ingredient=self.ingredient, quantity=200, unit="g",
+            expiry_date=date.today() + timedelta(days=30),
+        )
+        response = self.client.get(reverse("recipes:list"))
+        self.assertNotContains(response, "Ça expire bientôt")
+
+    def test_already_expired_item_shown_as_perime(self):
+        StockItem.objects.create(
+            ingredient=self.ingredient, quantity=200, unit="g",
+            expiry_date=date.today() - timedelta(days=1),
+        )
+        response = self.client.get(reverse("recipes:list"))
+        self.assertContains(response, "périmé")
+
+    def test_expiring_item_without_matching_recipe_has_no_suggestion_link(self):
+        StockItem.objects.create(
+            ingredient=self.ingredient, quantity=200, unit="g",
+            expiry_date=date.today() + timedelta(days=1),
+        )
+        response = self.client.get(reverse("recipes:list"))
+        self.assertContains(response, self.ingredient.name)
+        self.assertNotContains(response, "cuisiner :")
+
+
 class SurpriseMeTests(RecipesTestCase):
     def test_filters_by_prep_time(self):
         quick = Recipe.objects.create(title="Rapide", prep_time_min=10, nutrition_score="light")

@@ -4,6 +4,19 @@
 <h1>Mes recettes</h1>
 <p><a href="{% url 'recipes:create' %}" role="button">+ Nouvelle recette</a></p>
 
+{% if expiring_stock %}
+<div role="alert">
+    <strong>Ça expire bientôt :</strong>
+    {% for item, recipe in expiring_stock %}
+    <p style="margin: 0.4rem 0 0;">
+        {{ item.ingredient.name }} —
+        {% if item.is_expired %}périmé{% else %}périme le {{ item.expiry_date }}{% endif %}
+        {% if recipe %}· <a href="{% url 'recipes:detail' recipe.pk %}">cuisiner : {{ recipe.title }}</a>{% endif %}
+    </p>
+    {% endfor %}
+</div>
+{% endif %}
+
 <article class="surprise-card">
     <h2>Surprends-moi</h2>
     <p>Une suggestion selon le temps dont tu disposes et l'envie du moment.</p>

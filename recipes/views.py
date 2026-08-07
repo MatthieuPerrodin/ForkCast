@@ -34,6 +34,26 @@ def _redirect_next(request, fallback):
     return redirect(request.POST.get("next") or fallback)
 
 
+def _expiring_stock_suggestions():
+    """Stock lots expiring within StockItem.EXPIRY_WARNING_DAYS (or already expired), each paired
+    with one recipe using that ingredient if one exists -- surfaces "this expires soon, cook it"
+    on the recipe list page. Small, bounded list in practice (a household's pantry rarely has more
+    than a handful of lots expiring at once), so one query per item to find a suggestion is fine.
+    """
+    items = (
+        StockItem.objects.filter(
+            expiry_date__isnull=False,
+            expiry_date__lte=date.today() + timedelta(days=StockItem.EXPIRY_WARNING_DAYS),
+        )
+        .select_related("ingredient")
+        .order_by("expiry_date")
+    )
+    return [
+        (item, Recipe.objects.filter(recipe_ingredients__ingredient=item.ingredient).first())
+        for item in items
+    ]
+
+
 class RecipeListView(LoginRequiredMixin, ListView):
     model = Recipe
     template_name = "recipes/list.html"
@@ -75,6 +95,7 @@ class RecipeListView(LoginRequiredMixin, ListView):
         context["deal_recipe_ids"] = _recipes_on_deal_ids(
             ids=[r.pk for r in context["recipes"]]
         )
+        context["expiring_stock"] = _expiring_stock_suggestions()
         return context
 
 
