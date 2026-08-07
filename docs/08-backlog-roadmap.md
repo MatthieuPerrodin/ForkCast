@@ -30,10 +30,11 @@ doesn't yet, add it there first (existing project rule, see `AGENTS.md`).
 
 ## Tier 2 — New cross-referencing logic, still pure Django/SQL, no external calls
 
-4. **Expiry notifications** — a banner/section (pantry page, or a small dashboard widget) listing
-   `StockItem`s expiring soon (the model already computes `is_expiring_soon`) alongside recipes
-   that use that ingredient (`RecipeIngredient` join), so "this expires in 2 days" comes with "cook
-   this." No new model, just a query joining data that already exists.
+4. ~~**Expiry notifications**~~ — done: a `role="alert"` banner at the top of the recipe list page
+   lists `StockItem`s expiring within `EXPIRY_WARNING_DAYS` (or already expired), each paired with
+   one recipe using that ingredient when one exists (`_expiring_stock_suggestions()` in
+   `views.py`). Placed on the recipe list rather than the pantry page since that's where the user
+   is actually deciding what to cook (Direction A of the bidirectional loop).
 5. **Leftover management** — "I have X grams of Y, what can I make?": a targeted search filtering
    `Recipe` by `recipe_ingredients__ingredient` and comparing quantity, closely related to #4's
    query shape and to the existing V2 pantry-aware suggestion logic.
