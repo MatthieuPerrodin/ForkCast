@@ -24,6 +24,11 @@
     Cloud Run.
   - [docs/04-phase1-tasks.md](docs/04-phase1-tasks.md) — task checklist for Phase 1, check off /
     update as real progress happens (source of truth for what's actually done).
+  - [docs/08-backlog-roadmap.md](docs/08-backlog-roadmap.md) — the Phase 5/backlog ideas from
+    `01-requirements.md`, ordered simplest → most complex. **When there's no explicit task queued
+    and the user wants to keep going, pick the next unclaimed item from the top of this file**
+    rather than asking what to build or picking arbitrarily. Keep it in sync when backlog items are
+    added, reordered, or shipped.
 - **Read these documents before proposing code, an architecture, or a data model.**
 - **After any structuring decision** (stack choice, architecture change, scope added/removed,
   lesson learned from a mistake): add an entry to `docs/00-journal-de-bord.md` (date,
