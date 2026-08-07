@@ -622,6 +622,67 @@ class ShoppingListTests(RecipesTestCase):
         self.assertEqual(item.quantity, Decimal("2"))
 
 
+class CostEstimateTests(RecipesTestCase):
+    def test_unit_price_requires_both_reference_fields(self):
+        self.assertIsNone(self.ingredient.unit_price)
+        self.ingredient.reference_quantity = Decimal("1000")
+        self.assertIsNone(self.ingredient.unit_price)
+        self.ingredient.reference_price = Decimal("4.99")
+        self.assertEqual(self.ingredient.unit_price, Decimal("4.99") / Decimal("1000"))
+
+    def test_line_cost_estimated_when_unit_matches(self):
+        self.ingredient.reference_quantity = Decimal("1000")
+        self.ingredient.reference_price = Decimal("5.00")
+        self.ingredient.save()
+        shopping_list = ShoppingList.objects.create()
+        item = ShoppingListItem.objects.create(
+            shopping_list=shopping_list, ingredient=self.ingredient, quantity=200, unit="g",
+        )
+        self.assertEqual(item.estimated_cost, Decimal("1.00"))
+
+    def test_line_cost_none_when_unit_does_not_match_default_unit(self):
+        self.ingredient.reference_quantity = Decimal("1000")
+        self.ingredient.reference_price = Decimal("5.00")
+        self.ingredient.save()
+        shopping_list = ShoppingList.objects.create()
+        item = ShoppingListItem.objects.create(
+            shopping_list=shopping_list, ingredient=self.ingredient, quantity=1, unit="kg",
+        )
+        self.assertIsNone(item.estimated_cost)
+
+    def test_line_cost_none_for_manual_item_without_ingredient(self):
+        shopping_list = ShoppingList.objects.create()
+        item = ShoppingListItem.objects.create(
+            shopping_list=shopping_list, free_text_name="Sacs poubelle", quantity=2, unit="boîtes",
+        )
+        self.assertIsNone(item.estimated_cost)
+
+    def test_shopping_list_total_sums_only_priced_items(self):
+        self.ingredient.reference_quantity = Decimal("1000")
+        self.ingredient.reference_price = Decimal("5.00")
+        self.ingredient.save()
+        unpriced_ingredient = Ingredient.objects.create(name="Sel", default_unit="g")
+        shopping_list = ShoppingList.objects.create()
+        ShoppingListItem.objects.create(
+            shopping_list=shopping_list, ingredient=self.ingredient, quantity=200, unit="g",
+        )
+        ShoppingListItem.objects.create(
+            shopping_list=shopping_list, ingredient=unpriced_ingredient, quantity=50, unit="g",
+        )
+        self.assertEqual(shopping_list.estimated_total, Decimal("1.00"))
+
+    def test_estimated_total_shown_on_shopping_list_page(self):
+        self.ingredient.reference_quantity = Decimal("1000")
+        self.ingredient.reference_price = Decimal("5.00")
+        self.ingredient.save()
+        shopping_list = ShoppingList.objects.create()
+        ShoppingListItem.objects.create(
+            shopping_list=shopping_list, ingredient=self.ingredient, quantity=200, unit="g",
+        )
+        response = self.client.get(reverse("recipes:shopping_list"))
+        self.assertContains(response, "Coût estimé")
+
+
 class DealTests(RecipesTestCase):
     def test_is_active_on_boundary_dates(self):
         deal = Deal.objects.create(
