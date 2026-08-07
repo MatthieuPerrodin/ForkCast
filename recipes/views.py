@@ -1,4 +1,8 @@
+import json
 import random
+import re
+import urllib.error
+import urllib.request
 from datetime import date, timedelta
 from decimal import Decimal, InvalidOperation
 
@@ -63,6 +67,55 @@ def _expiring_stock_suggestions():
         (item, Recipe.objects.filter(recipe_ingredients__ingredient=item.ingredient).first())
         for item in items
     ]
+
+
+OFF_LOOKUP_TIMEOUT_SECONDS = 5
+OFF_API_URL = (
+    "https://world.openfoodfacts.org/api/v2/product/{barcode}.json"
+    "?fields=product_name,quantity,image_front_small_url"
+)
+# Matches a leading number (possibly with a comma or dot decimal) followed by a unit word, e.g.
+# "400 g" or "1.5L" -- multipacks like "6x33cl" won't match cleanly and fall back to manual entry,
+# which is the right call: a wrong guess is worse than none (see docs/02-data-model.md #5).
+OFF_QUANTITY_RE = re.compile(r"^\s*([\d]+(?:[.,][\d]+)?)\s*([a-zA-Zµ]+)\s*$")
+
+
+def _parse_off_quantity(raw):
+    if not raw:
+        return None, ""
+    match = OFF_QUANTITY_RE.match(raw)
+    if not match:
+        return None, ""
+    try:
+        return Decimal(match.group(1).replace(",", ".")), match.group(2)
+    except InvalidOperation:
+        return None, ""
+
+
+def _lookup_off_product(barcode):
+    """Looks up a barcode on Open Food Facts (free, no API key needed). Returns None on anything
+    that isn't a clean, named match -- this is a convenience lookup, not a hard dependency, so any
+    failure (network, unknown barcode, no product name on file) just means the user falls back to
+    entering the product manually, not a broken page.
+    """
+    try:
+        with urllib.request.urlopen(
+            OFF_API_URL.format(barcode=barcode), timeout=OFF_LOOKUP_TIMEOUT_SECONDS
+        ) as response:
+            data = json.loads(response.read())
+    except (urllib.error.URLError, TimeoutError, ValueError, OSError):
+        return None
+
+    if data.get("status") != 1:
+        return None
+
+    product = data.get("product") or {}
+    product_name = (product.get("product_name") or "").strip()
+    if not product_name:
+        return None
+
+    quantity, unit = _parse_off_quantity(product.get("quantity") or "")
+    return {"product_name": product_name, "quantity": quantity, "unit": unit}
 
 
 class RecipeListView(LoginRequiredMixin, ListView):
@@ -427,6 +480,57 @@ def edit_stock_item(request, pk):
 def delete_stock_item(request, pk):
     get_object_or_404(StockItem, pk=pk).delete()
     return redirect("recipes:pantry")
+
+
+@login_required
+def scan_view(request):
+    return render(request, "recipes/scan.html", {})
+
+
+@login_required
+def scan_lookup(request):
+    barcode = request.GET.get("barcode", "").strip()
+    product = _lookup_off_product(barcode) if barcode else None
+    return render(request, "recipes/_scan_result.html", product or {})
+
+
+@login_required
+@require_POST
+def scan_add_to_pantry(request):
+    product_name = request.POST.get("product_name", "").strip()
+    if not product_name:
+        return redirect("recipes:scan")
+    unit = request.POST.get("unit", "").strip()
+    # get_or_create by name: scanned product names won't usually match an existing Ingredient
+    # exactly, but requiring the user to manually match one first would defeat the point of
+    # scanning for a quick restock -- see docs/02-data-model.md #5.
+    ingredient, _ = Ingredient.objects.get_or_create(
+        name=product_name, defaults={"default_unit": unit}
+    )
+    StockItem.objects.create(
+        ingredient=ingredient,
+        quantity=request.POST.get("quantity") or 1,
+        unit=unit or ingredient.default_unit,
+    )
+    messages.success(request, f"{product_name} ajouté au garde-manger.")
+    return redirect("recipes:pantry")
+
+
+@login_required
+@require_POST
+def scan_add_to_shopping_list(request):
+    product_name = request.POST.get("product_name", "").strip()
+    if not product_name:
+        return redirect("recipes:scan")
+    ShoppingListItem.objects.create(
+        shopping_list=ShoppingList.objects.get_or_create_current(),
+        free_text_name=product_name,
+        quantity=request.POST.get("quantity") or None,
+        unit=request.POST.get("unit", ""),
+        source=ShoppingListItem.Source.MANUAL,
+    )
+    messages.success(request, f"{product_name} ajouté à la liste de courses.")
+    return redirect("recipes:shopping_list")
 
 
 def _add_formset_row(request, formset_class, prefix, template_name):

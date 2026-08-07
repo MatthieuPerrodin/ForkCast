@@ -60,12 +60,12 @@ external data source or AI processing — hence more uncertain and only worth ta
 - Receipt scanning/OCR to automatically restock the pantry after a grocery run.
 - Automatically fetching store discounts/flyers (scraping or an API like Flipp/Reebee) to
   proactively suggest what to buy — see Direction B in §5.
-- **Barcode scan via Open Food Facts** (free, no API key): scan a product coming back from the
-  store to pull its name/photo/macros automatically instead of typing them in — a concrete,
-  buildable version of "photo-based product recognition" above, useful in particular for anything
-  with a nutrition label worth capturing exactly (protein powder, etc.). Two entry points once the
-  scan-and-lookup plumbing exists: straight into the pantry (restock), or onto the shared shopping
-  list when scanning an emptied-out package at home.
+- ~~**Barcode scan via Open Food Facts**~~ (free, no API key) — the lookup-and-fill core is done:
+  `/scan/` takes a barcode (typed for now, see below) and offers adding the result straight into
+  the pantry (restock) or onto the shared shopping list. Still open: replacing the typed entry with
+  a live camera reader (see `docs/08-backlog-roadmap.md` #7b), and pulling macros/photo from Open
+  Food Facts, which needs new fields on `Ingredient` that don't exist yet — useful in particular for
+  anything with a nutrition label worth capturing exactly (protein powder, etc.).
 - **Voice-driven pantry/list updates, via an existing consumer tool rather than a custom voice UI**:
   say an item out loud (Google Assistant/Gemini, Siri Shortcuts...) and have it land in the pantry
   or shopping list without opening the app. The common shape across the options considered: some
