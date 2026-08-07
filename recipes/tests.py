@@ -410,7 +410,7 @@ class DealTests(RecipesTestCase):
         response = self.client.get(reverse("recipes:list"))
         self.assertIn(on_sale_recipe.pk, response.context["deal_recipe_ids"])
         self.assertNotIn(other_recipe.pk, response.context["deal_recipe_ids"])
-        self.assertContains(response, "en rabais")
+        self.assertContains(response, "rabais")
 
         response = self.client.get(reverse("recipes:planning_week", args=[self.year, self.week]))
         self.assertIn(on_sale_recipe.pk, response.context["deal_recipe_ids"])

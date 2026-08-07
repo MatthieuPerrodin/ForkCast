@@ -18,17 +18,18 @@
 </form>
 
 <h2>Rabais enregistrés</h2>
-<ul>
-    {% for deal in deals %}
-    <li>
+{% for deal in deals %}
+<div class="pantry-item">
+    <span>
         {{ deal.ingredient.name }}
-        {% if deal.store %}chez {{ deal.store }}{% endif %}
-        {% if deal.sale_price %}— {{ deal.sale_price }} $ {% endif %}
-        ({{ deal.start_date }} au {{ deal.end_date }})
+        {% if deal.store %}<span style="color: var(--text-muted);">chez {{ deal.store }}</span>{% endif %}
         {% if deal.is_active %}<mark>en cours</mark>{% endif %}
-    </li>
-    {% empty %}
-    <li>Aucun rabais enregistré.</li>
-    {% endfor %}
-</ul>
+    </span>
+    <span class="qty">
+        {% if deal.sale_price %}{{ deal.sale_price }} $ · {% endif %}{{ deal.start_date }} au {{ deal.end_date }}
+    </span>
+</div>
+{% empty %}
+<p>Aucun rabais enregistré.</p>
+{% endfor %}
 {% endblock %}

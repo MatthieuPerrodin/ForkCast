@@ -27,5 +27,9 @@ jobs:
 
       # Catches static-file regressions (e.g. a broken {% static %} reference) before they'd
       # only surface at Docker build / deploy time -- see Dockerfile, which runs this same step.
+      # DJANGO_DEBUG=False so this actually exercises the manifest-based storage prod uses
+      # (collectstatic is a no-op-ish plain copy under DEBUG=True -- see settings.py).
       - name: Collectstatic sanity check
+        env:
+          DJANGO_DEBUG: "False"
         run: python manage.py collectstatic --noinput

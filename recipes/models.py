@@ -205,6 +205,12 @@ class ShoppingListItem(models.Model):
     def display_name(self):
         return self.ingredient.name if self.ingredient else self.free_text_name
 
+    @property
+    def aisle_label(self):
+        """Human-readable aisle for grouping the list in the template -- manually-added items
+        with no ingredient reference don't have an aisle, so they get their own bucket."""
+        return self.ingredient.get_aisle_category_display() if self.ingredient else "Autre"
+
     def __str__(self):
         return self.display_name
 

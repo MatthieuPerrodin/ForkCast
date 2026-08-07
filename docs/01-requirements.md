@@ -92,8 +92,10 @@ committed to yet:
 - **Shopping list sorted by store aisle** (produce, pantry, frozen...) to move faster through the
   store — cheap to build now by adding a "category" field to the ingredient reference table (see
   data model).
-- **Recipe import from a URL** (often just copy-pasted from a site) — avoids manual re-entry,
-  a big time saver for filling the recipe book initially.
+- **Recipe import from a URL, or from a social video** (a website page, or an Instagram/TikTok
+  recipe video) — avoids manual re-entry, a big time saver for filling the recipe book initially.
+  The video variant needs transcription/extraction and is closer in complexity to the Phase 5 AI
+  ideas (OCR receipt, photo recognition) than to a simple URL scrape.
 - **Leftover management**: "I have X grams of Y left, what can I make with it?" — a targeted
   variant of the meal suggestion feature.
 - **Diet/allergy filters** (vegetarian, gluten-free...) applied to suggestions and shopping list
@@ -103,6 +105,17 @@ committed to yet:
   calorie calculation — stays simple to enter and maintain.
 - **Expiry notifications** ("this expires in 2 days, cook it") — tied to Phase 4.
 - **Cost estimate** for groceries — useful but not a priority compared to nutrition/speed.
+- **Automatic weekly plan generation**: instead of assigning each slot by hand, auto-fill the
+  whole week following complementary patterns (protein variety across the week, a mix of meal
+  types/nutrition scores rather than five heavy dinners in a row). Driven by the same bidirectional
+  loop as the rest of the app (§5): either from what's on hand (pantry-first, no shopping trip
+  needed) or from what's on sale plus a shopping list to fill the gaps. A capstone on top of both
+  directions once V2 of each exists (Phase 4 pantry cross-referencing, Phase 5 automatic deals),
+  not a new mechanism of its own.
+- **Long-process tracker**: a small dashboard with notifications for things that run over several
+  days or weeks (sourdough starter, marinades, brewing, lacto-fermentation) — separate from meal
+  planning's day/lunch-dinner grid since these don't map to a single slot, but still food-prep
+  adjacent enough to belong in the app rather than a generic reminders tool.
 
 ## 6. Detailed functional requirements (user stories)
 

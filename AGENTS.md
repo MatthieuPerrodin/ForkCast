@@ -96,6 +96,21 @@
   on a phone screen — it didn't, and the fix was only caught by a dedicated responsive pass much
   later. A `flex-wrap` rule on the nav already handles reasonable growth, but re-verify at 375px
   after adding another item anyway.
+- **Static files use `ManifestStaticFilesStorage` (via whitenoise) only when `DEBUG=False`** (see
+  `forkcast/settings.py`, `STATICFILES_BACKEND`) — that backend needs `collectstatic` to have run
+  first to build its filename-hash manifest, which isn't true for local `runserver` or the test
+  suite. Local/test runs use plain `StaticFilesStorage` instead. If you add a new `{% static %}`
+  reference and see `ValueError: Missing staticfiles manifest entry`, that's this — don't "fix" it
+  by running `collectstatic` locally, the DEBUG branch already avoids needing it.
+- **CSS gotcha for `<a role="button">`**: don't add a bare `a { color: ... }` override without
+  excluding `[role="button"]` — button-styled links (`.pill`-adjacent, "Modifier", etc.) must keep
+  the button color rule winning, or their text can end up the same color as their own background
+  (found in dark mode, 2026-08-06). The current rule already does this
+  (`a:not([role="button"])`); keep that exclusion if you touch link colors again.
+- **Never wrap a `<form>` inside a `<p>`** — browsers implicitly close an open `<p>` when they hit a
+  nested `<form>` (it's in the HTML5 list of paragraph-closing elements), silently breaking any
+  "same row" layout you intended. Use a `<div>` (see `.button-row` in `app.css`) for any row mixing
+  a link/button with a form.
 
 ## History
 

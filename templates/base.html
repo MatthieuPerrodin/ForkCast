@@ -1,50 +1,21 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}ForkCast{% endblock %}</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <link rel="stylesheet" href="{% static 'recipes/css/app.css' %}">
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
     <script defer src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js"></script>
-    <style>
-        /* Several pages have a one-button form (delete/toggle/mark-cooked) sitting next to other
-           inline content -- avoids repeating style="display:inline" at each call site. */
-        .inline-form {
-            display: inline;
-        }
-
-        /* Pico's [role=group] lays out inputs+button side by side, which gets too cramped on
-           narrow screens (e.g. the Surprise-me / search filters). Stack them below ~480px. */
-        @media (max-width: 480px) {
-            [role="group"] {
-                flex-direction: column;
-            }
-            [role="group"] > * {
-                border-radius: var(--pico-border-radius) !important;
-                margin-bottom: 0.5rem;
-            }
-        }
-
-        /* The nav grew to 6 links across the session (Recettes/Planning/Courses/Rabais/
-           Garde-manger/Déconnexion) -- let it wrap onto multiple lines on narrow screens instead
-           of forcing the whole page wider than the viewport. */
-        @media (max-width: 600px) {
-            nav.container {
-                flex-wrap: wrap;
-                row-gap: 0.5rem;
-            }
-            nav.container ul {
-                flex-wrap: wrap;
-                row-gap: 0.25rem;
-            }
-        }
-    </style>
 </head>
 <body>
     <nav class="container">
         <ul>
-            <li><strong><a href="{% url 'recipes:list' %}">ForkCast</a></strong></li>
+            <li><strong><a href="{% url 'recipes:list' %}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align: -2px; margin-right: 0.3rem;"><path d="M6 2v8M6 2c-2 0-2 3-2 4s0 4 2 4M6 10v12M18 2v20M14 2c0 3 2 3 2 5s-2 2-2 5"/></svg>
+                ForkCast
+            </a></strong></li>
         </ul>
         {% if user.is_authenticated %}
         <ul>
