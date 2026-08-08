@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Importer une recette — ForkCast{% endblock %}
+{% block content %}
+<a href="{% url 'recipes:list' %}">&larr; Retour aux recettes</a>
+<h1>Importer une recette</h1>
+<p>
+    Colle l'adresse d'une page de recette. Si le site publie ses données structurées
+    (schema.org, ce que font la plupart des sites de cuisine), le formulaire sera prérempli
+    pour que tu puisses le relire et le corriger avant d'enregistrer.
+</p>
+
+{% if error %}<p role="alert">{{ error }}</p>{% endif %}
+
+<form method="post">
+    {% csrf_token %}
+    <fieldset role="group">
+        <input
+            type="url" name="url" required autofocus value="{{ url|default:'' }}"
+            placeholder="https://exemple.com/recette-de-carbonara"
+        >
+        <button type="submit">Importer</button>
+    </fieldset>
+</form>
+{% endblock %}

@@ -109,10 +109,10 @@ committed to yet:
 - ~~**Shopping list sorted by store aisle** (produce, pantry, frozen...) to move faster through
   the store.~~ Done — the ingredient reference table's aisle category (see data model) groups the
   shopping list by aisle.
-- **Recipe import from a URL, or from a social video** (a website page, or an Instagram/TikTok
-  recipe video) — avoids manual re-entry, a big time saver for filling the recipe book initially.
-  The video variant needs transcription/extraction and is closer in complexity to the Phase 5 AI
-  ideas (OCR receipt, photo recognition) than to a simple URL scrape.
+- ~~**Recipe import from a URL**~~ — done: `/import/` reads a page's schema.org/Recipe structured
+  data and pre-fills the create form for review. **Still open — the social-video variant** (an
+  Instagram/TikTok recipe video): needs transcription/extraction and is closer in complexity to the
+  Phase 5 AI ideas (OCR receipt, photo recognition) than to the structured-data read that shipped.
 - **Leftover management**: "I have X grams of Y left, what can I make with it?" — a targeted
   variant of the meal suggestion feature.
 - **Diet/allergy filters** (vegetarian, gluten-free...) applied to suggestions and shopping list

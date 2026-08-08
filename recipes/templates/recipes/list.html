@@ -2,7 +2,10 @@
 {% block title %}Mes recettes — ForkCast{% endblock %}
 {% block content %}
 <h1>Mes recettes</h1>
-<p><a href="{% url 'recipes:create' %}" role="button">+ Nouvelle recette</a></p>
+<div class="button-row">
+    <a href="{% url 'recipes:create' %}" role="button">+ Nouvelle recette</a>
+    <a href="{% url 'recipes:import_recipe' %}" role="button" class="secondary">Importer depuis une URL</a>
+</div>
 
 {% if expiring_stock %}
 <div role="alert">
