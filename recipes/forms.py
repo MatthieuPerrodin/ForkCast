@@ -1,7 +1,7 @@
 from django import forms
 from django.forms import inlineformset_factory
 
-from .models import Deal, Recipe, RecipeIngredient, StockItem, Step, Tag
+from .models import Deal, LongProcess, Recipe, RecipeIngredient, StockItem, Step, Tag
 
 DATE_INPUT = forms.DateInput(attrs={"type": "date"})
 
@@ -98,6 +98,18 @@ class DealForm(forms.ModelForm):
             "sale_price": forms.NumberInput(attrs={"placeholder": "Prix promo (optionnel)"}),
             "start_date": DATE_INPUT,
             "end_date": DATE_INPUT,
+        }
+
+
+class LongProcessForm(forms.ModelForm):
+    class Meta:
+        model = LongProcess
+        fields = ["name", "kind", "started_on", "ready_on", "notes"]
+        widgets = {
+            "name": forms.TextInput(attrs={"placeholder": "Nom (ex : levain de seigle)"}),
+            "started_on": DATE_INPUT,
+            "ready_on": DATE_INPUT,
+            "notes": forms.Textarea(attrs={"rows": 2, "placeholder": "Notes (optionnel)"}),
         }
 
 

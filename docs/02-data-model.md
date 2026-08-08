@@ -140,6 +140,22 @@ erDiagram
 | start_date / end_date | date | how long the deal is valid |
 | source | enum (manual/flyer_import) | `manual` for V1; `flyer_import` reserved for future automation (Phase 5) |
 
+### `LongProcess` (backlog item #9 — long-process tracker)
+| Field | Type | Notes |
+|---|---|---|
+| id | id | |
+| name | text | e.g. "rye sourdough starter" |
+| kind | enum (sourdough/marinade/brewing/fermentation/other) | |
+| started_on | date | defaults to today |
+| ready_on | date, nullable | expected, not enforced — some processes are "until it looks right" |
+| notes | text, optional | |
+| completed_on | date, nullable | null = still ongoing; set/unset is a toggle |
+
+Deliberately **not** a `MealSlot` variant: these span a range of days rather than landing in one
+lunch/dinner slot, so the planning grid has nowhere to put them. They also don't reference
+`Recipe` — a starter or a batch of kimchi is an ongoing thing in its own right, not an instance of
+a recipe being cooked.
+
 ## 5. Open questions / decisions for later
 
 - **Unit conversion** (e.g. a recipe in "tablespoons", stock in "grams"): unresolved at this

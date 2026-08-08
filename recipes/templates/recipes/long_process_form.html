@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Modifier {{ process.name }} — ForkCast{% endblock %}
+{% block content %}
+<a href="{% url 'recipes:long_processes' %}">&larr; Retour aux processus</a>
+<h1>Modifier : {{ process.name }}</h1>
+
+<form method="post">
+    {% csrf_token %}
+    <label for="{{ form.name.id_for_label }}">Nom</label>
+    {{ form.name }}
+    <label for="{{ form.kind.id_for_label }}">Type</label>
+    {{ form.kind }}
+    <label for="{{ form.started_on.id_for_label }}">Démarré le</label>
+    {{ form.started_on }}
+    <label for="{{ form.ready_on.id_for_label }}">Prêt le (prévu)</label>
+    {{ form.ready_on }}
+    <label for="{{ form.notes.id_for_label }}">Notes</label>
+    {{ form.notes }}
+    {{ form.errors }}
+    <p><button type="submit">Enregistrer</button></p>
+</form>
+{% endblock %}

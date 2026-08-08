@@ -129,10 +129,11 @@ committed to yet:
   needed) or from what's on sale plus a shopping list to fill the gaps. A capstone on top of both
   directions once V2 of each exists (Phase 4 pantry cross-referencing, Phase 5 automatic deals),
   not a new mechanism of its own.
-- **Long-process tracker**: a small dashboard with notifications for things that run over several
-  days or weeks (sourdough starter, marinades, brewing, lacto-fermentation) — separate from meal
-  planning's day/lunch-dinner grid since these don't map to a single slot, but still food-prep
-  adjacent enough to belong in the app rather than a generic reminders tool.
+- ~~**Long-process tracker**~~: a dashboard for things that run over several days or weeks
+  (sourdough starter, marinades, brewing, lacto-fermentation) — done, at `/processes/`, kept
+  separate from meal planning's day/lunch-dinner grid since these don't map to a single slot.
+  **Still open: the notifications half** — that needs a scheduler and a delivery channel, neither
+  of which the project has yet (see `docs/08-backlog-roadmap.md` #9).
 - **"Meal prep" mode**: when several planned recipes share a prep step (e.g. "mince 4 onions"
   needed by 3 different recipes this week), merge them into one batched instruction instead of
   repeating it per recipe. Needs steps to carry enough structure to detect the overlap (which

@@ -3,6 +3,7 @@ from django.contrib import admin
 from .models import (
     Deal,
     Ingredient,
+    LongProcess,
     MealSlot,
     Recipe,
     RecipeIngredient,
@@ -79,3 +80,11 @@ class StockItemAdmin(admin.ModelAdmin):
     list_filter = ["location"]
     list_select_related = ["ingredient"]
     date_hierarchy = "expiry_date"
+
+
+@admin.register(LongProcess)
+class LongProcessAdmin(admin.ModelAdmin):
+    list_display = ["name", "kind", "started_on", "ready_on", "completed_on"]
+    list_filter = ["kind"]
+    search_fields = ["name"]
+    date_hierarchy = "started_on"
