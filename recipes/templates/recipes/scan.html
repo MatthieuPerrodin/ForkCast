@@ -4,14 +4,32 @@
 <a href="{% url 'recipes:pantry' %}">&larr; Retour au garde-manger</a>
 <h1>Scanner un produit</h1>
 <p>
-    Entre le code-barres du produit (Open Food Facts) pour préremplir son nom et sa quantité
-    avant de l'ajouter au garde-manger ou à la liste de courses.
+    Scanne le code-barres avec la caméra, ou entre-le à la main. Le nom et la quantité du produit
+    sont repris d'Open Food Facts avant l'ajout au garde-manger ou à la liste de courses.
 </p>
 
-<form hx-get="{% url 'recipes:scan_lookup' %}" hx-target="#scan-result" hx-swap="innerHTML">
+{% comment %}
+The camera reader is progressive enhancement on top of the typed field below: if the library
+fails to load, the device has no camera, or permission is refused, the form still works.
+{% endcomment %}
+<div id="scanner" x-data="barcodeScanner()" x-cloak>
+    <div class="button-row">
+        <button type="button" @click="start()" x-show="!active">📷 Scanner avec la caméra</button>
+        <button type="button" class="secondary" @click="stop()" x-show="active">Arrêter la caméra</button>
+    </div>
+    <p role="alert" x-show="error" x-text="error"></p>
+    <div id="camera-view" x-show="active" class="camera-view"></div>
+</div>
+
+<form
+    id="barcode-form"
+    hx-get="{% url 'recipes:scan_lookup' %}"
+    hx-target="#scan-result"
+    hx-swap="innerHTML"
+>
     <fieldset role="group">
         <input
-            type="text" name="barcode" inputmode="numeric" autofocus required
+            type="text" name="barcode" id="barcode-input" inputmode="numeric" required
             placeholder="Code-barres (ex : 3017620422003)"
         >
         <button type="submit">Chercher</button>
@@ -19,4 +37,48 @@
 </form>
 
 <div id="scan-result"></div>
+
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+function barcodeScanner() {
+    return {
+        active: false,
+        error: "",
+        reader: null,
+        async start() {
+            this.error = "";
+            if (typeof Html5Qrcode === "undefined") {
+                this.error = "Le lecteur de code-barres n'a pas pu être chargé. Entre le code à la main.";
+                return;
+            }
+            this.active = true;
+            this.reader = new Html5Qrcode("camera-view");
+            try {
+                await this.reader.start(
+                    { facingMode: "environment" },
+                    { fps: 10, qrbox: { width: 250, height: 150 } },
+                    (decodedText) => this.onScanned(decodedText)
+                );
+            } catch (err) {
+                // Most often: permission refused, no camera, or a non-HTTPS origin (getUserMedia
+                // is blocked outside secure contexts, localhost excepted).
+                this.active = false;
+                this.error = "Caméra indisponible (permission refusée, pas de caméra, ou connexion non sécurisée). Entre le code à la main.";
+            }
+        },
+        onScanned(decodedText) {
+            document.getElementById("barcode-input").value = decodedText;
+            this.stop();
+            htmx.trigger("#barcode-form", "submit");
+        },
+        async stop() {
+            if (this.reader) {
+                try { await this.reader.stop(); } catch (err) { /* already stopped */ }
+                this.reader = null;
+            }
+            this.active = false;
+        },
+    };
+}
+</script>
 {% endblock %}

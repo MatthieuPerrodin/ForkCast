@@ -415,6 +415,21 @@ article {
   font-size: 1.15rem;
 }
 
+/* ---------- barcode scanner ---------- */
+/* Hides Alpine-driven markup until Alpine has initialised. Doubles as graceful degradation: if
+   Alpine or the barcode library never loads, the camera controls stay hidden and the plain typed
+   barcode field below them still works on its own. */
+[x-cloak] { display: none !important; }
+
+.camera-view {
+  max-width: 420px;
+  margin: 0.8rem 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.camera-view video { display: block; width: 100%; height: auto; }
+
 /* ---------- utility ---------- */
 .tabular { font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
 

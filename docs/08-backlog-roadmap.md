@@ -64,11 +64,13 @@ doesn't yet, add it there first (existing project rule, see `AGENTS.md`).
    whey") — `Ingredient` has no macro/photo fields today (`Recipe` does, but per-serving, a
    different concern), and adding them is a real modeling decision to make deliberately, not a side
    effect of wiring up a barcode lookup.
-7b. **Camera-based barcode scanning** (fast-follow to #7, not started) — replace/augment the typed
-   barcode field on `/scan/` with a live camera reader (e.g. `html5-qrcode` via CDN, matching the
-   no-build-step approach already used for htmx/Alpine). All the lookup/pantry/list plumbing from
-   #7 stays as-is; this only changes how the barcode gets typed in. Needs real-device testing
-   (camera permissions, HTTPS requirement) that a Playwright pass can't fully substitute for.
+7b. ~~**Camera-based barcode scanning**~~ — done: `html5-qrcode` via CDN (no build step, matching
+   htmx/Alpine), Alpine component on `/scan/`. Built as progressive enhancement — the typed field
+   stays and keeps working if the library fails to load, there's no camera, permission is refused,
+   or the origin isn't secure (`getUserMedia` is blocked outside HTTPS/localhost), with an
+   explanatory message in that case. **Still worth a real-device pass**: verified with Chromium's
+   fake media device, which proves the camera starts/streams and the denial path degrades, but not
+   that a real barcode decodes off a real phone camera.
 8. **Recipe import from a URL** — most recipe sites embed `schema.org/Recipe` structured data
    (JSON-LD), so a first version can be a scraper that looks for that block rather than parsing
    arbitrary HTML — meaningfully simpler than a general-purpose scraper, and doesn't need an LLM.
