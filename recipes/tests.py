@@ -11,6 +11,7 @@ from django.urls import reverse
 from .models import (
     Deal,
     Ingredient,
+    LongProcess,
     MealSlot,
     Recipe,
     RecipeIngredient,
@@ -1147,3 +1148,114 @@ class StockIntegrationTests(RecipesTestCase):
         self.assertFalse(StockItem.objects.filter(ingredient=self.ingredient).exists())
         recipe.refresh_from_db()
         self.assertEqual(recipe.last_cooked_on, date.today())
+
+
+class LongProcessTests(RecipesTestCase):
+    def test_create_process_via_form(self):
+        response = self.client.post(
+            reverse("recipes:long_processes"),
+            {
+                "name": "Levain de seigle",
+                "kind": "sourdough",
+                "started_on": (date.today() - timedelta(days=3)).isoformat(),
+                "ready_on": (date.today() + timedelta(days=4)).isoformat(),
+                "notes": "Nourrir tous les jours",
+            },
+        )
+        self.assertRedirects(response, reverse("recipes:long_processes"))
+        process = LongProcess.objects.get(name="Levain de seigle")
+        self.assertEqual(process.kind, "sourdough")
+        self.assertEqual(process.days_elapsed, 3)
+        self.assertEqual(process.days_remaining, 4)
+
+    def test_state_properties_across_the_lifecycle(self):
+        far = LongProcess.objects.create(
+            name="Kimchi", started_on=date.today(), ready_on=date.today() + timedelta(days=10)
+        )
+        self.assertFalse(far.is_ready)
+        self.assertFalse(far.is_due_soon)
+
+        soon = LongProcess.objects.create(
+            name="Marinade", started_on=date.today(), ready_on=date.today() + timedelta(days=1)
+        )
+        self.assertTrue(soon.is_due_soon)
+        self.assertFalse(soon.is_ready)
+
+        ready = LongProcess.objects.create(
+            name="Bière", started_on=date.today() - timedelta(days=20),
+            ready_on=date.today() - timedelta(days=1),
+        )
+        self.assertTrue(ready.is_ready)
+        # is_due_soon and is_ready are mutually exclusive -- a ready item shouldn't also claim
+        # to be "due soon", or the template would show both badges.
+        self.assertFalse(ready.is_due_soon)
+
+    def test_undated_process_has_no_deadline_state(self):
+        process = LongProcess.objects.create(name="Vinaigre", started_on=date.today())
+        self.assertIsNone(process.days_remaining)
+        self.assertFalse(process.is_ready)
+        self.assertFalse(process.is_due_soon)
+
+    def test_completing_is_a_toggle(self):
+        process = LongProcess.objects.create(name="Levain", started_on=date.today())
+        url = reverse("recipes:complete_long_process", args=[process.pk])
+
+        self.client.post(url)
+        process.refresh_from_db()
+        self.assertEqual(process.completed_on, date.today())
+        self.assertTrue(process.is_done)
+
+        # Toggling back undoes a mis-click without needing to delete and re-enter.
+        self.client.post(url)
+        process.refresh_from_db()
+        self.assertIsNone(process.completed_on)
+
+    def test_completed_process_reports_no_remaining_days(self):
+        process = LongProcess.objects.create(
+            name="Kombucha", started_on=date.today() - timedelta(days=8),
+            ready_on=date.today() + timedelta(days=2), completed_on=date.today(),
+        )
+        self.assertIsNone(process.days_remaining)
+        self.assertFalse(process.is_ready)
+        self.assertEqual(process.days_elapsed, 8)
+
+    def test_list_separates_ongoing_from_finished(self):
+        LongProcess.objects.create(name="En cours", started_on=date.today())
+        LongProcess.objects.create(
+            name="Fini", started_on=date.today(), completed_on=date.today()
+        )
+        response = self.client.get(reverse("recipes:long_processes"))
+        self.assertEqual([p.name for p in response.context["ongoing"]], ["En cours"])
+        self.assertEqual([p.name for p in response.context["finished"]], ["Fini"])
+
+    def test_ordering_puts_soonest_due_first_and_undated_last(self):
+        LongProcess.objects.create(name="Sans date", started_on=date.today())
+        LongProcess.objects.create(
+            name="Plus tard", started_on=date.today(), ready_on=date.today() + timedelta(days=9)
+        )
+        LongProcess.objects.create(
+            name="Bientôt", started_on=date.today(), ready_on=date.today() + timedelta(days=1)
+        )
+        names = [p.name for p in LongProcess.objects.ongoing()]
+        self.assertEqual(names, ["Bientôt", "Plus tard", "Sans date"])
+
+    def test_ready_badge_shown_on_page(self):
+        LongProcess.objects.create(
+            name="Levain prêt", started_on=date.today() - timedelta(days=7),
+            ready_on=date.today() - timedelta(days=1),
+        )
+        response = self.client.get(reverse("recipes:long_processes"))
+        self.assertContains(response, "Prêt")
+
+    def test_edit_and_delete(self):
+        process = LongProcess.objects.create(name="Avant", started_on=date.today())
+        self.client.post(
+            reverse("recipes:edit_long_process", args=[process.pk]),
+            {"name": "Après", "kind": "other", "started_on": date.today().isoformat(),
+             "ready_on": "", "notes": ""},
+        )
+        process.refresh_from_db()
+        self.assertEqual(process.name, "Après")
+
+        self.client.post(reverse("recipes:delete_long_process", args=[process.pk]))
+        self.assertFalse(LongProcess.objects.filter(pk=process.pk).exists())

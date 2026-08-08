@@ -85,10 +85,16 @@ doesn't yet, add it there first (existing project rule, see `AGENTS.md`).
 
 ## Tier 4 — Multiple moving parts or a new domain model
 
-9. **Long-process tracker** (sourdough, marinades, fermentation) — a genuinely new model
-   (something like `LongProcess`: name, started_on, expected_ready_on, notes) plus its own small
-   dashboard. Not hard individually, but it's a new concept in the domain model rather than an
-   extension of an existing one, unlike tiers 1-3.
+9. ~~**Long-process tracker**~~ (sourdough, marinades, fermentation) — done: a `LongProcess`
+   model (name, kind, started_on, ready_on, notes, completed_on) with its own `/processes/` page
+   listing what's ongoing vs finished, "ready"/"due soon" badges, and a days-remaining countdown.
+   Kept as its own model rather than a `MealSlot` variant: these span a range of days instead of
+   landing in one lunch/dinner slot, so the planning grid has nowhere to put them. Marking done is
+   a **toggle**, so a mis-click doesn't force a delete and full re-entry. **Not done: actual
+   notifications** — the original idea says "dashboard with notifications", and this is the
+   dashboard half. Push/email notification would need a scheduler and a delivery channel, neither
+   of which exists in the project yet (no Celery/cron, deployment still parked), so it's a
+   separate piece of work rather than a detail of this one.
 10. **"Meal prep" mode** (merge shared prep steps across the week's recipes) — needs `Step`/
     `RecipeIngredient` to carry enough structure to detect overlap (which ingredient, which action)
     rather than free text as today. The ingredient-level `state` field added in PR #16 is a start,

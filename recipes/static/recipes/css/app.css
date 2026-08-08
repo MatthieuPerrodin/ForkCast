@@ -386,12 +386,15 @@ article {
 .pantry-item {
   display: flex;
   align-items: center;
+  /* Rows carry a varying number of actions (two on the pantry, three on long processes), so both
+     the row and its action group have to wrap rather than push the page sideways on a phone. */
+  flex-wrap: wrap;
   gap: 0.6rem;
   padding: 0.55rem 0;
   border-bottom: 1px solid var(--border);
 }
 .pantry-item .qty { margin-left: auto; font-family: var(--font-mono); font-size: 0.85rem; color: var(--text-muted); }
-.pantry-item .actions { display: flex; gap: 0.6rem; font-size: 0.82rem; }
+.pantry-item .actions { display: flex; flex-wrap: wrap; gap: 0.6rem; font-size: 0.82rem; align-items: center; }
 
 /* ---------- ingredients / steps (recipe detail) ---------- */
 .ingredient-list { list-style: none; margin: 0 0 1rem; padding: 0; }

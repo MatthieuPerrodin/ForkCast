@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Processus longs — ForkCast{% endblock %}
+{% block content %}
+<h1>Processus longs</h1>
+<p>Levain, marinades, brassage, lacto-fermentation — ce qui mijote sur plusieurs jours.</p>
+
+<form method="post">
+    {% csrf_token %}
+    <fieldset role="group">
+        {{ form.name }}
+        {{ form.kind }}
+        {{ form.started_on }}
+        {{ form.ready_on }}
+        <button type="submit">Démarrer</button>
+    </fieldset>
+    {{ form.notes }}
+    {{ form.errors }}
+</form>
+
+<h2>En cours</h2>
+{% for process in ongoing %}
+<div class="pantry-item">
+    <span>
+        {% if process.is_ready %}<mark>Prêt</mark>{% elif process.is_due_soon %}<mark>Bientôt prêt</mark>{% endif %}
+        {{ process.name }}
+        <span style="color: var(--text-muted);">
+            ({{ process.get_kind_display }} · démarré il y a {{ process.days_elapsed }} j{% if process.notes %} · {{ process.notes }}{% endif %})
+        </span>
+    </span>
+    <span class="qty">
+        {% if process.days_remaining is None %}—
+        {% elif process.days_remaining > 0 %}J-{{ process.days_remaining }}
+        {% elif process.days_remaining == 0 %}aujourd'hui
+        {% else %}en retard{% endif %}
+    </span>
+    <span class="actions">
+        <a href="{% url 'recipes:edit_long_process' process.pk %}">Modifier</a>
+        <form method="post" action="{% url 'recipes:complete_long_process' process.pk %}" class="inline-form">
+            {% csrf_token %}
+            <button type="submit" class="secondary outline">Terminé</button>
+        </form>
+        <form method="post" action="{% url 'recipes:delete_long_process' process.pk %}" class="inline-form">
+            {% csrf_token %}
+            <button type="submit" class="secondary outline">Supprimer</button>
+        </form>
+    </span>
+</div>
+{% empty %}
+<p>Rien en cours.</p>
+{% endfor %}
+
+{% if finished %}
+<h2>Terminés</h2>
+{% for process in finished %}
+<div class="pantry-item">
+    <span>
+        {{ process.name }}
+        <span style="color: var(--text-muted);">({{ process.get_kind_display }} · {{ process.days_elapsed }} j au total)</span>
+    </span>
+    <span class="qty">terminé le {{ process.completed_on }}</span>
+    <span class="actions">
+        <form method="post" action="{% url 'recipes:complete_long_process' process.pk %}" class="inline-form">
+            {% csrf_token %}
+            <button type="submit" class="secondary outline">Rouvrir</button>
+        </form>
+    </span>
+</div>
+{% endfor %}
+{% endif %}
+{% endblock %}

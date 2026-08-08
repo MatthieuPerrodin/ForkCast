@@ -383,3 +383,71 @@ class StockItem(models.Model):
 
     def __str__(self):
         return f"{self.quantity} {self.unit} {self.ingredient.name} ({self.get_location_display()})"
+
+
+class LongProcessQuerySet(models.QuerySet):
+    def ongoing(self):
+        return self.filter(completed_on__isnull=True)
+
+    def finished(self):
+        return self.filter(completed_on__isnull=False)
+
+
+class LongProcess(models.Model):
+    """Something that runs over days or weeks and needs checking on -- sourdough starter,
+    marinade, brewing, lacto-fermentation. Deliberately its own model rather than a MealSlot
+    variant: these span a range of days instead of landing in one lunch/dinner slot, so the
+    planning grid has nowhere to put them (see docs/08-backlog-roadmap.md #9).
+    """
+
+    class Kind(models.TextChoices):
+        SOURDOUGH = "sourdough", "Levain"
+        MARINADE = "marinade", "Marinade"
+        BREWING = "brewing", "Brassage"
+        FERMENTATION = "fermentation", "Lacto-fermentation"
+        OTHER = "other", "Autre"
+
+    DUE_SOON_DAYS = 2
+
+    name = models.CharField(max_length=120)
+    kind = models.CharField(max_length=20, choices=Kind.choices, default=Kind.OTHER)
+    started_on = models.DateField(default=date.today)
+    ready_on = models.DateField(null=True, blank=True)
+    notes = models.TextField(blank=True)
+    completed_on = models.DateField(null=True, blank=True)
+
+    objects = LongProcessQuerySet.as_manager()
+
+    class Meta:
+        # Soonest-due first, undated last -- nulls_last is explicit because SQLite and PostgreSQL
+        # disagree on default NULL ordering (same reason as StockItem.Meta.ordering).
+        ordering = [F("ready_on").asc(nulls_last=True), "-started_on"]
+        verbose_name_plural = "long processes"
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def is_done(self):
+        return self.completed_on is not None
+
+    @property
+    def is_ready(self):
+        """Past its expected ready date and not yet marked done."""
+        return bool(self.ready_on and not self.is_done and self.ready_on <= date.today())
+
+    @property
+    def is_due_soon(self):
+        if not self.ready_on or self.is_done or self.is_ready:
+            return False
+        return self.ready_on <= date.today() + timedelta(days=self.DUE_SOON_DAYS)
+
+    @property
+    def days_remaining(self):
+        if not self.ready_on or self.is_done:
+            return None
+        return (self.ready_on - date.today()).days
+
+    @property
+    def days_elapsed(self):
+        return ((self.completed_on or date.today()) - self.started_on).days

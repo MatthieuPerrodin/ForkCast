@@ -14,11 +14,19 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 from django.views.generic import DetailView, ListView
 
-from .forms import DealForm, RecipeForm, RecipeIngredientFormSet, StepFormSet, StockItemForm
+from .forms import (
+    DealForm,
+    LongProcessForm,
+    RecipeForm,
+    RecipeIngredientFormSet,
+    StepFormSet,
+    StockItemForm,
+)
 from .recipe_import import RecipeImportError, import_recipe_from_url
 from .models import (
     Deal,
     Ingredient,
+    LongProcess,
     MealSlot,
     Recipe,
     RecipeIngredient,
@@ -598,6 +606,61 @@ def scan_add_to_shopping_list(request):
     )
     messages.success(request, f"{product_name} ajouté à la liste de courses.")
     return redirect("recipes:shopping_list")
+
+
+@login_required
+def long_process_view(request):
+    if request.method == "POST":
+        form = LongProcessForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect("recipes:long_processes")
+    else:
+        form = LongProcessForm()
+
+    return render(
+        request,
+        "recipes/long_processes.html",
+        {
+            "form": form,
+            "ongoing": LongProcess.objects.ongoing(),
+            "finished": LongProcess.objects.finished()[:10],
+        },
+    )
+
+
+@login_required
+def edit_long_process(request, pk):
+    process = get_object_or_404(LongProcess, pk=pk)
+    if request.method == "POST":
+        form = LongProcessForm(request.POST, instance=process)
+        if form.is_valid():
+            form.save()
+            return redirect("recipes:long_processes")
+    else:
+        form = LongProcessForm(instance=process)
+
+    return render(
+        request, "recipes/long_process_form.html", {"form": form, "process": process}
+    )
+
+
+@login_required
+@require_POST
+def complete_long_process(request, pk):
+    process = get_object_or_404(LongProcess, pk=pk)
+    # Toggle rather than one-way: marking something done by mistake shouldn't need a delete and
+    # a full re-entry to undo.
+    process.completed_on = None if process.is_done else date.today()
+    process.save(update_fields=["completed_on"])
+    return redirect("recipes:long_processes")
+
+
+@login_required
+@require_POST
+def delete_long_process(request, pk):
+    get_object_or_404(LongProcess, pk=pk).delete()
+    return redirect("recipes:long_processes")
 
 
 def _add_formset_row(request, formset_class, prefix, template_name):
