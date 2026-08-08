@@ -687,6 +687,17 @@ class CostEstimateTests(RecipesTestCase):
 
 
 class ScanTests(RecipesTestCase):
+    def test_scan_page_offers_camera_and_keeps_typed_fallback(self):
+        """The camera reader is progressive enhancement -- the typed barcode field must stay on
+        the page so a device with no camera (or refused permission) can still use the lookup."""
+        response = self.client.get(reverse("recipes:scan"))
+        self.assertContains(response, "Scanner avec la caméra")
+        self.assertContains(response, "html5-qrcode")
+        self.assertContains(response, 'name="barcode"')
+        # Django's {# #} comment syntax is single-line only; a multi-line one renders as visible
+        # page text instead (caught on this page during review).
+        self.assertNotContains(response, "{#")
+
     def _mock_off_response(self, payload):
         mock_response = MagicMock()
         mock_response.read.return_value = json.dumps(payload).encode()
