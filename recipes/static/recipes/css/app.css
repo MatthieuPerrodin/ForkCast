@@ -231,6 +231,9 @@ fieldset[role="group"] > button, fieldset[role="group"] > [role="button"] { flex
   padding: 0.7rem 1rem;
   font-size: 0.9rem;
   border-radius: var(--radius);
+  /* Alerts carry arbitrary text, including long unbreakable tokens like a source URL, which
+     otherwise push the whole page sideways on a phone. */
+  overflow-wrap: anywhere;
 }
 
 /* ---------- badges ---------- */

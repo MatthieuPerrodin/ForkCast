@@ -14,6 +14,7 @@ urlpatterns = [
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
     path("", views.RecipeListView.as_view(), name="list"),
     path("new/", views.recipe_form, name="create"),
+    path("import/", views.import_recipe, name="import_recipe"),
     path("surprise-me/", views.surprise_me, name="surprise_me"),
     path("leftover/", views.leftover_search, name="leftover_search"),
     path("planning/", views.planning_current, name="planning"),

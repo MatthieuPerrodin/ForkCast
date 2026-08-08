@@ -3,7 +3,14 @@
 {% block content %}
 <h1>{% if recipe %}Modifier la recette{% else %}Nouvelle recette{% endif %}</h1>
 
-<form method="post" enctype="multipart/form-data">
+{% if imported_from %}
+<p role="alert">
+    Prérempli depuis <a href="{{ imported_from }}" rel="noreferrer">{{ imported_from }}</a>.
+    Relis et corrige avant d'enregistrer — rien n'est encore sauvegardé.
+</p>
+{% endif %}
+
+<form method="post" enctype="multipart/form-data" {% if imported_from %}action="{% url 'recipes:create' %}"{% endif %}>
     {% csrf_token %}
 
     <label for="{{ form.title.id_for_label }}">Titre</label>

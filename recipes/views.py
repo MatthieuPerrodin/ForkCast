@@ -15,6 +15,7 @@ from django.views.decorators.http import require_POST
 from django.views.generic import DetailView, ListView
 
 from .forms import DealForm, RecipeForm, RecipeIngredientFormSet, StepFormSet, StockItemForm
+from .recipe_import import RecipeImportError, import_recipe_from_url
 from .models import (
     Deal,
     Ingredient,
@@ -204,6 +205,72 @@ def recipe_form(request, pk=None):
             "ingredients_formset": ingredients_formset,
             "steps_formset": steps_formset,
             "recipe": recipe,
+        },
+    )
+
+
+@login_required
+def import_recipe(request):
+    """Fetches a recipe's schema.org data from a URL and hands the user a pre-filled create form
+    to review. Nothing is saved here -- the extraction is best-effort, so the user confirms via the
+    normal create flow, which also means no special save path to keep in sync with recipe_form.
+    """
+    if request.method != "POST":
+        return render(request, "recipes/import.html", {})
+
+    url = request.POST.get("url", "").strip()
+    try:
+        draft = import_recipe_from_url(url)
+    except RecipeImportError as exc:
+        return render(request, "recipes/import.html", {"error": str(exc), "url": url})
+
+    # Ingredients arrive as free text ("400 g de spaghetti") but the form needs an Ingredient FK,
+    # so the parsed names have to exist as rows to be selectable. Creating them here means a
+    # previewed-then-abandoned import can leave unused Ingredient rows behind -- accepted, since
+    # Ingredient is a shared reference vocabulary where a spare name is harmless, and the same
+    # get_or_create-by-name call is already how barcode scanning adds products.
+    ingredient_initial = []
+    for quantity, unit, name in draft["ingredients"]:
+        if not name:
+            continue
+        ingredient, _ = Ingredient.objects.get_or_create(
+            name=name[:100], defaults={"default_unit": unit}
+        )
+        ingredient_initial.append(
+            {"ingredient": ingredient.pk, "quantity": quantity, "unit": unit}
+        )
+
+    step_initial = [
+        {"order": index, "description": text}
+        for index, text in enumerate(draft["steps"], start=1)
+    ]
+
+    form = RecipeForm(
+        initial={
+            "title": draft["title"],
+            "description": draft["description"],
+            "prep_time_min": draft["prep_time_min"],
+            "cook_time_min": draft["cook_time_min"],
+            "default_servings": draft["default_servings"],
+            "notes": f"Importée depuis {draft['source_url']}",
+        }
+    )
+    ingredients_formset = RecipeIngredientFormSet(
+        instance=None, prefix="ingredients", initial=ingredient_initial
+    )
+    ingredients_formset.extra = len(ingredient_initial) + 1
+    steps_formset = StepFormSet(instance=None, prefix="steps", initial=step_initial)
+    steps_formset.extra = len(step_initial) + 1
+
+    return render(
+        request,
+        "recipes/form.html",
+        {
+            "form": form,
+            "ingredients_formset": ingredients_formset,
+            "steps_formset": steps_formset,
+            "recipe": None,
+            "imported_from": draft["source_url"],
         },
     )
 

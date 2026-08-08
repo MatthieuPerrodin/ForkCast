@@ -71,11 +71,17 @@ doesn't yet, add it there first (existing project rule, see `AGENTS.md`).
    explanatory message in that case. **Still worth a real-device pass**: verified with Chromium's
    fake media device, which proves the camera starts/streams and the denial path degrades, but not
    that a real barcode decodes off a real phone camera.
-8. **Recipe import from a URL** — most recipe sites embed `schema.org/Recipe` structured data
-   (JSON-LD), so a first version can be a scraper that looks for that block rather than parsing
-   arbitrary HTML — meaningfully simpler than a general-purpose scraper, and doesn't need an LLM.
-   Falls back to "paste manually" for sites without structured data instead of trying to handle
-   every case.
+8. ~~**Recipe import from a URL**~~ — done: `/import/` fetches the page and reads its
+   `schema.org/Recipe` JSON-LD (`recipes/recipe_import.py`, its own module since the parsing has
+   nothing to do with request handling). Handles the shapes sites actually use interchangeably:
+   `@graph` wrappers, `@type` as a list, instructions as strings / `HowToStep` objects / nested
+   `HowToSection`s, `recipeYield` as text or a bare number. **Nothing is saved on import** — the
+   user gets the normal create form pre-filled to review and correct, so there's no second save
+   path to keep in sync with `recipe_form`. Sites without structured data (or that block bots,
+   e.g. AllRecipes) get a clear "enter it manually" message. Known limitation: parsed ingredient
+   names are `get_or_create`d so they're selectable in the form, meaning an abandoned import can
+   leave unused `Ingredient` rows — accepted, same call as barcode scanning, since `Ingredient` is
+   a shared vocabulary where a spare name is harmless.
 
 ## Tier 4 — Multiple moving parts or a new domain model
 

@@ -19,6 +19,13 @@ from .models import (
     StockItem,
     Tag,
 )
+from .recipe_import import (
+    RecipeImportError,
+    import_recipe_from_url,
+    parse_ingredient_line,
+    parse_iso_duration_minutes,
+    parse_servings,
+)
 
 
 class RecipesTestCase(TestCase):
@@ -684,6 +691,137 @@ class CostEstimateTests(RecipesTestCase):
         )
         response = self.client.get(reverse("recipes:shopping_list"))
         self.assertContains(response, "Coût estimé")
+
+
+def _json_ld_page(payload):
+    return (
+        "<html><head><script type=\"application/ld+json\">"
+        + json.dumps(payload)
+        + "</script></head><body>Hello</body></html>"
+    )
+
+
+class RecipeImportParsingTests(TestCase):
+    """Pure parsing, no HTTP -- the messy real-world shapes schema.org allows for the same data."""
+
+    def test_iso_duration_parsing(self):
+        self.assertEqual(parse_iso_duration_minutes("PT30M"), 30)
+        self.assertEqual(parse_iso_duration_minutes("PT1H30M"), 90)
+        self.assertEqual(parse_iso_duration_minutes("PT2H"), 120)
+        self.assertIsNone(parse_iso_duration_minutes("bogus"))
+        self.assertIsNone(parse_iso_duration_minutes(None))
+
+    def test_servings_parsing_handles_text_and_lists(self):
+        self.assertEqual(parse_servings("4 portions"), 4)
+        self.assertEqual(parse_servings(["6 servings"]), 6)
+        self.assertEqual(parse_servings(6), 6)
+        self.assertIsNone(parse_servings("quelques"))
+
+    def test_ingredient_line_splits_quantity_unit_and_name(self):
+        self.assertEqual(parse_ingredient_line("400 g de spaghetti"),
+                         (Decimal("400"), "g", "spaghetti"))
+        self.assertEqual(parse_ingredient_line("2 cups flour"),
+                         (Decimal("2"), "cups", "flour"))
+
+    def test_ingredient_line_treats_non_unit_word_as_part_of_the_name(self):
+        # "oeufs" isn't a unit -- it must not be swallowed as one, leaving an empty name.
+        quantity, unit, name = parse_ingredient_line("3 oeufs frais")
+        self.assertEqual(quantity, Decimal("3"))
+        self.assertEqual(unit, "")
+        self.assertEqual(name, "oeufs frais")
+
+    def test_ingredient_line_without_quantity_keeps_whole_text_as_name(self):
+        self.assertEqual(parse_ingredient_line("Sel et poivre"), (None, "", "Sel et poivre"))
+
+    @patch("recipes.recipe_import._fetch_html")
+    def test_import_reads_graph_wrapped_recipe(self, mock_fetch):
+        # @graph wrappers are common (Yoast and similar) -- the Recipe is nested, not top level.
+        mock_fetch.return_value = _json_ld_page({
+            "@graph": [
+                {"@type": "WebSite", "name": "Un site"},
+                {
+                    "@type": "Recipe",
+                    "name": "Carbonara",
+                    "description": "<p>La <b>vraie</b> recette</p>",
+                    "prepTime": "PT10M",
+                    "cookTime": "PT15M",
+                    "recipeYield": "4 portions",
+                    "recipeIngredient": ["400 g de spaghetti", "3 oeufs"],
+                    "recipeInstructions": [
+                        {"@type": "HowToStep", "text": "Cuire les pâtes."},
+                        {"@type": "HowToStep", "text": "Mélanger."},
+                    ],
+                },
+            ]
+        })
+        draft = import_recipe_from_url("https://exemple.com/carbonara")
+        self.assertEqual(draft["title"], "Carbonara")
+        self.assertEqual(draft["description"], "La vraie recette")  # HTML stripped
+        self.assertEqual(draft["prep_time_min"], 10)
+        self.assertEqual(draft["cook_time_min"], 15)
+        self.assertEqual(draft["default_servings"], 4)
+        self.assertEqual(draft["steps"], ["Cuire les pâtes.", "Mélanger."])
+        self.assertEqual(draft["ingredients"][0], (Decimal("400"), "g", "spaghetti"))
+
+    @patch("recipes.recipe_import._fetch_html")
+    def test_import_reads_type_list_and_string_instructions(self, mock_fetch):
+        mock_fetch.return_value = _json_ld_page({
+            "@type": ["Recipe", "NewsArticle"],
+            "name": "Salade",
+            "recipeIngredient": "1 laitue",
+            "recipeInstructions": "Laver.\nCouper.",
+        })
+        draft = import_recipe_from_url("https://exemple.com/salade")
+        self.assertEqual(draft["title"], "Salade")
+        self.assertEqual(draft["steps"], ["Laver.", "Couper."])
+        self.assertEqual(len(draft["ingredients"]), 1)
+
+    @patch("recipes.recipe_import._fetch_html")
+    def test_import_raises_when_page_has_no_recipe(self, mock_fetch):
+        mock_fetch.return_value = _json_ld_page({"@type": "WebSite", "name": "Un site"})
+        with self.assertRaises(RecipeImportError):
+            import_recipe_from_url("https://exemple.com/pas-une-recette")
+
+    @patch("recipes.recipe_import._fetch_html")
+    def test_import_ignores_malformed_json_ld_blocks(self, mock_fetch):
+        mock_fetch.return_value = (
+            '<script type="application/ld+json">{ not json </script>'
+            + _json_ld_page({"@type": "Recipe", "name": "Quand même trouvée"})
+        )
+        self.assertEqual(
+            import_recipe_from_url("https://exemple.com/x")["title"], "Quand même trouvée"
+        )
+
+    def test_import_rejects_non_http_scheme(self):
+        with self.assertRaises(RecipeImportError):
+            import_recipe_from_url("file:///etc/passwd")
+
+
+class RecipeImportViewTests(RecipesTestCase):
+    @patch("recipes.views.import_recipe_from_url")
+    def test_import_prefills_the_create_form_without_saving(self, mock_import):
+        mock_import.return_value = {
+            "title": "Carbonara importée",
+            "description": "Une description",
+            "prep_time_min": 10,
+            "cook_time_min": 15,
+            "default_servings": 4,
+            "ingredients": [(Decimal("400"), "g", "spaghetti")],
+            "steps": ["Cuire les pâtes."],
+            "source_url": "https://exemple.com/carbonara",
+        }
+        response = self.client.post(reverse("recipes:import_recipe"), {"url": "https://x.com/r"})
+        self.assertContains(response, "Carbonara importée")
+        self.assertContains(response, "Cuire les pâtes.")
+        self.assertContains(response, "rien n'est encore sauvegardé")
+        # Nothing committed: the user still has to submit the create form.
+        self.assertFalse(Recipe.objects.filter(title="Carbonara importée").exists())
+
+    @patch("recipes.views.import_recipe_from_url", side_effect=RecipeImportError("Pas trouvé"))
+    def test_import_shows_error_without_crashing(self, mock_import):
+        response = self.client.post(reverse("recipes:import_recipe"), {"url": "https://x.com/r"})
+        self.assertContains(response, "Pas trouvé")
+        self.assertEqual(response.status_code, 200)
 
 
 class ScanTests(RecipesTestCase):
